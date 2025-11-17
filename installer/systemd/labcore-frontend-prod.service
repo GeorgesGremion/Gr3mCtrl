@@ -6,8 +6,8 @@ Requires=labcore-backend.service
 [Service]
 Type=simple
 WorkingDirectory=/root/labcore/frontend
-# Build and serve static dist on port 4173 (adjust if needed)
-ExecStart=/usr/bin/env bash -lc 'npm install && npm run build && npx serve -s dist -l 4173'
+# Build and start Vite preview (serves /dist) on port 4173
+ExecStart=/usr/bin/env bash -lc 'npm install && npm run build && npm run preview'
 Restart=on-failure
 RestartSec=3
 User=root
