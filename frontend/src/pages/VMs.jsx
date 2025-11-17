@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiGet, apiPost, apiDelete } from "../api";
 import Modal from "../components/Modal";
-import SpiceViewer from "../components/SpiceViewer";
+import VncViewer from "../components/VncViewer";
 
 export default function VMs() {
   const qc = useQueryClient();
@@ -151,14 +151,14 @@ export default function VMs() {
                 onClick={() => setConsoleVM(vm.name)}
                 className="flex-1 bg-blue-800 hover:bg-blue-700 rounded-lg py-2 text-sm disabled:opacity-50"
               >
-                Console (SPICE)
+                Console (VNC)
               </button>
             </div>
           </div>
         ))}
       </div>
 
-      {consoleVM && <SpiceViewer vmName={consoleVM} onClose={() => setConsoleVM("")} />}
+      {consoleVM && <VncViewer vmName={consoleVM} onClose={() => setConsoleVM("")} />}
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Neue VM erstellen">
         <div className="space-y-4">

@@ -277,9 +277,7 @@ func buildDomainXML(req CreateVMRequest, diskPath string) string {
       <target dev='sda' bus='sata'/>
       <readonly/>\n    </disk>
     %s
-    <graphics type='spice' autoport='yes' listen='0.0.0.0'>
-      <listen type='address' address='0.0.0.0'/>
-    </graphics>
+    <graphics type='vnc' port='-1' autoport='yes'/>
     <console type='pty'/>
   </devices>
 </domain>`, req.Name, req.MemoryMB, req.VCPUs, diskPath, req.ISO, netXML)

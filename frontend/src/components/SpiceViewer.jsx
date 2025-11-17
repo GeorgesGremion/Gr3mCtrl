@@ -86,3 +86,4 @@ export default function SpiceViewer({ vmName, onClose }) {
     </div>
   );
 }
+  // Simple fallback UI; currently not used if VNC is preferred
