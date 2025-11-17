@@ -5,26 +5,23 @@ export default function VncViewer({ vmName, onClose }) {
   const rfbRef = useRef(null);
   const [status, setStatus] = useState("connecting");
   const [error, setError] = useState("");
+  const [scale, setScale] = useState(true);
 
   useEffect(() => {
     if (!vmName || !canvasRef.current) return;
 
     const loadRFB = async () => {
+      // lokale Kopie aus public (vermeidet Build-Probleme)
       if (window.RFB) return window.RFB;
-      const candidates = [
-        "https://esm.sh/@novnc/novnc@1.5.0/lib/rfb.js",
-        "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/lib/rfb.js",
-      ];
-      for (const url of candidates) {
-        try {
-          const mod = await import(/* @vite-ignore */ url);
-          const Cls = mod?.default || mod?.RFB || window.RFB;
-          if (Cls) return Cls;
-        } catch (e) {
-          // try next
-        }
-      }
-      throw new Error("noVNC konnte nicht geladen werden (CDN blockiert?)");
+      const script = document.createElement("script");
+      script.src = "/vendor/novnc/rfb.js";
+      script.async = true;
+      document.body.appendChild(script);
+      await new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = reject;
+      });
+      return window.RFB;
     };
 
     let active = true;
@@ -38,7 +35,8 @@ export default function VncViewer({ vmName, onClose }) {
         const protocol = window.location.protocol === "https:" ? "wss" : "ws";
         const url = `${protocol}://${window.location.host}/ws/vnc/${vmName}`;
         const rfb = new Cls(canvasRef.current, url, { credentials: {} });
-        rfb.scaleViewport = true;
+        rfb.scaleViewport = scale;
+        rfb.resizeSession = scale;
         rfb.background = "#000";
         rfbRef.current = rfb;
         rfb.addEventListener("connect", () => setStatus("connected"));
@@ -54,16 +52,16 @@ export default function VncViewer({ vmName, onClose }) {
       });
 
     return () => {
-        active = false;
-        if (rfbRef.current) {
-          try {
-            rfbRef.current.disconnect();
-          } catch (e) {
-            /* ignore */
-          }
+      active = false;
+      if (rfbRef.current) {
+        try {
+          rfbRef.current.disconnect();
+        } catch (e) {
+          /* ignore */
         }
-      };
-  }, [vmName]);
+      }
+    };
+  }, [vmName, scale]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
@@ -85,6 +83,33 @@ export default function VncViewer({ vmName, onClose }) {
             {error}
           </div>
         )}
+        <div className="flex items-center gap-2 mb-2 text-sm">
+          <button
+            onClick={() => {
+              try {
+                rfbRef.current?.sendCtrlAltDel();
+              } catch (e) {
+                setError(e.message);
+              }
+            }}
+            className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700"
+          >
+            Ctrl+Alt+Del
+          </button>
+          <button
+            onClick={() => {
+              const next = !scale;
+              setScale(next);
+              if (rfbRef.current) {
+                rfbRef.current.scaleViewport = next;
+                rfbRef.current.resizeSession = next;
+              }
+            }}
+            className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700"
+          >
+            {scale ? "No Scale" : "Scale"}
+          </button>
+        </div>
         <div
           ref={canvasRef}
           className="w-full h-[70vh] bg-black"
