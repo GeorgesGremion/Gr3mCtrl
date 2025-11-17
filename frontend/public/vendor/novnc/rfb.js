@@ -1,0 +1,1 @@
+Couldn't find the requested file /core/rfb.js in @novnc/novnc.
