@@ -5,7 +5,8 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/root/labcore/backend
-ExecStart=/usr/bin/env bash -lc '/usr/bin/go run .'
+# Build latest binary to /usr/local/bin/labcore and start it
+ExecStart=/usr/bin/env bash -lc 'go build -o /usr/local/bin/labcore && /usr/local/bin/labcore'
 Restart=on-failure
 RestartSec=3
 User=root

@@ -1,0 +1,16 @@
+[Unit]
+Description=LabCore Frontend (built, static serve)
+After=network.target labcore-backend.service
+Requires=labcore-backend.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/labcore/frontend
+# Build and serve static dist on port 4173 (adjust if needed)
+ExecStart=/usr/bin/env bash -lc 'npm install && npm run build && npx serve -s dist -l 4173'
+Restart=on-failure
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=labcore.target
