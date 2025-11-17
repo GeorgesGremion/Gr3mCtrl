@@ -132,9 +132,9 @@ export default function VMs() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xl shadow-[0_20px_45px_rgba(15,23,42,0.35)] min-h-[60vh]">
+        <div className="lg:col-span-2 bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xl shadow-[0_20px_45px_rgba(15,23,42,0.35)] min-h-[60vh] flex flex-col">
           {selected ? (
-            <div className="flex flex-col h-full">
+            <>
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="text-xl font-semibold">{selected.name}</h3>
@@ -185,11 +185,11 @@ export default function VMs() {
 
               <div className="flex-1 overflow-auto">
                 {tab === "console" && (
-                  <div className="text-sm text-gray-300">
+                  <div className="text-sm text-gray-300 h-full">
                     {selected.state !== "running" ? (
                       <p className="text-red-400 mb-2">VM muss laufen, um die Konsole zu öffnen.</p>
                     ) : (
-                      <VncViewer vmName={selected.name} onClose={() => setConsoleVM("")} />
+                      <VncViewer vmName={selected.name} onClose={() => setConsoleVM("")} inline />
                     )}
                   </div>
                 )}
@@ -214,7 +214,7 @@ export default function VMs() {
                   </div>
                 )}
               </div>
-            </div>
+            </>
           ) : (
             <p className="text-gray-400">Bitte eine VM links auswählen.</p>
           )}

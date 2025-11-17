@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-export default function VncViewer({ vmName, onClose }) {
+export default function VncViewer({ vmName, onClose, inline = false }) {
   const canvasRef = useRef(null);
   const rfbRef = useRef(null);
   const [status, setStatus] = useState("connecting");
@@ -67,6 +67,64 @@ export default function VncViewer({ vmName, onClose }) {
     };
   }, [vmName, scale]);
 
+  const Toolbar = () => (
+    <div className="flex items-center gap-2 mb-2 text-sm">
+      <button
+        onClick={() => {
+          try {
+            rfbRef.current?.sendCtrlAltDel();
+          } catch (e) {
+            setError(e.message);
+          }
+        }}
+        className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700"
+      >
+        Ctrl+Alt+Del
+      </button>
+      <button
+        onClick={() => {
+          const next = !scale;
+          setScale(next);
+          if (rfbRef.current) {
+            rfbRef.current.scaleViewport = next;
+            rfbRef.current.resizeSession = next;
+          }
+        }}
+        className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700"
+      >
+        {scale ? "No Scale" : "Scale"}
+      </button>
+      {onClose && !inline && (
+        <button
+          onClick={onClose}
+          className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700"
+        >
+          Close
+        </button>
+      )}
+    </div>
+  );
+
+  if (inline) {
+    return (
+      <div className="w-full h-full bg-black/40 border border-white/10 rounded-lg p-2">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-sm font-semibold">Console: {vmName}</p>
+            <p className="text-xs text-gray-400">Status: {status}</p>
+          </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+        </div>
+        <Toolbar />
+        <div
+          ref={canvasRef}
+          className="w-full h-[70vh] bg-black rounded"
+          style={{ aspectRatio: "16/9" }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="max-w-5xl w-full bg-white/5 border border-white/10 rounded-2xl shadow-2xl p-4 text-white relative">
@@ -75,45 +133,21 @@ export default function VncViewer({ vmName, onClose }) {
             <h3 className="text-lg font-semibold">Console: {vmName}</h3>
             <p className="text-xs text-gray-300">Status: {status}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
-          >
-            Close
-          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
+            >
+              Close
+            </button>
+          )}
         </div>
         {error && (
           <div className="text-red-400 text-sm mb-2">
             {error}
           </div>
         )}
-        <div className="flex items-center gap-2 mb-2 text-sm">
-          <button
-            onClick={() => {
-              try {
-                rfbRef.current?.sendCtrlAltDel();
-              } catch (e) {
-                setError(e.message);
-              }
-            }}
-            className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700"
-          >
-            Ctrl+Alt+Del
-          </button>
-          <button
-            onClick={() => {
-              const next = !scale;
-              setScale(next);
-              if (rfbRef.current) {
-                rfbRef.current.scaleViewport = next;
-                rfbRef.current.resizeSession = next;
-              }
-            }}
-            className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700"
-          >
-            {scale ? "No Scale" : "Scale"}
-          </button>
-        </div>
+        <Toolbar />
         <div
           ref={canvasRef}
           className="w-full h-[70vh] bg-black"
