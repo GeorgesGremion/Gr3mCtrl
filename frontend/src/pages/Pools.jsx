@@ -179,8 +179,12 @@ export default function Pools() {
                   <p className="text-gray-300 text-sm">Layout: {p.layout || "stripe"}</p>
                   <p className="text-gray-300 text-sm">Disks: {p.data_disks?.length ? p.data_disks.join(", ") : "-"}</p>
                   <p className="text-gray-300 text-sm">Health: {p.health || "unknown"}</p>
-                  <p className="text-gray-300 text-sm">Total: {(p.total_data / (1024 ** 3)).toFixed(1)} GB</p>
-                  <p className="text-gray-300 text-sm">Free: {(p.usable / (1024 ** 3)).toFixed(1)} GB</p>
+                  <p className="text-gray-300 text-sm">
+                    Total: {p.total_data ? (p.total_data / (1024 ** 3)).toFixed(1) : "0.0"} GB
+                  </p>
+                  <p className="text-gray-300 text-sm">
+                    Free: {p.usable ? (p.usable / (1024 ** 3)).toFixed(1) : "0.0"} GB
+                  </p>
                 </div>
                 <button
                   onClick={() => del.mutate(p.name)}
