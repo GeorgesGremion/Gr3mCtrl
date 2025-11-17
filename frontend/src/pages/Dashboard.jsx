@@ -65,10 +65,13 @@ export default function Dashboard() {
   const ramUsage = (data.ram_used / data.ram_total) * 100;
   const diskUsage = (data.disk_used / data.disk_total) * 100;
   const gaugeData = (value) => [{ name: "usage", value }];
-  const poolsUsable = (pools || []).reduce((acc, p) => acc + (p.usable || 0), 0);
-  const poolsCount = pools?.length || 0;
-  const sharesCount = shares?.length || 0;
-  const vmsRunning = (vms || []).filter((v) => v.state === "running").length;
+  const poolsSafe = Array.isArray(pools) ? pools : [];
+  const sharesSafe = Array.isArray(shares) ? shares : [];
+  const vmsSafe = Array.isArray(vms) ? vms : [];
+  const poolsUsable = poolsSafe.reduce((acc, p) => acc + (p.usable || 0), 0);
+  const poolsCount = poolsSafe.length;
+  const sharesCount = sharesSafe.length;
+  const vmsRunning = vmsSafe.filter((v) => v.state === "running").length;
 
   const heroStats = [
     {
