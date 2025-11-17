@@ -323,6 +323,26 @@ export default function VMs() {
   );
 }
 
+const ActionButton = ({ label, onClick, color = "emerald", disabled }) => {
+  const colorMap = {
+    emerald: "bg-emerald-600 hover:bg-emerald-500",
+    amber: "bg-amber-600 hover:bg-amber-500",
+    indigo: "bg-indigo-700 hover:bg-indigo-600",
+    rose: "bg-rose-600 hover:bg-rose-500",
+    blue: "bg-blue-700 hover:bg-blue-600",
+    slate: "bg-slate-800 hover:bg-slate-700",
+  };
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={`px-3 py-2 rounded-lg text-xs ${colorMap[color] || colorMap.emerald} disabled:opacity-50`}
+    >
+      {label}
+    </button>
+  );
+};
+
 const Field = ({ label, children }) => (
   <div className="space-y-1">
     <p className="text-sm text-gray-300">{label}</p>
