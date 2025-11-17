@@ -11,17 +11,21 @@ export default function VncViewer({ vmName, onClose }) {
     if (!vmName || !canvasRef.current) return;
 
     const loadRFB = async () => {
-      // lokale Kopie aus public (vermeidet Build-Probleme)
       if (window.RFB) return window.RFB;
-      const script = document.createElement("script");
-      script.src = "/vendor/novnc/rfb.js";
-      script.async = true;
-      document.body.appendChild(script);
-      await new Promise((resolve, reject) => {
-        script.onload = resolve;
-        script.onerror = reject;
-      });
-      return window.RFB;
+      const candidates = [
+        "https://esm.sh/@novnc/novnc@1.5.0/core/rfb.js",
+        "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/core/rfb.js",
+      ];
+      for (const url of candidates) {
+        try {
+          const mod = await import(/* @vite-ignore */ url);
+          const Cls = mod?.default || mod?.RFB || window.RFB;
+          if (Cls) return Cls;
+        } catch (e) {
+          // try next
+        }
+      }
+      throw new Error("noVNC konnte nicht geladen werden");
     };
 
     let active = true;
