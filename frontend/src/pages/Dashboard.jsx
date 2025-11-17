@@ -72,6 +72,7 @@ export default function Dashboard() {
   const poolsCount = poolsSafe.length;
   const sharesCount = sharesSafe.length;
   const vmsRunning = vmsSafe.filter((v) => v.state === "running").length;
+  const poolsUsableText = poolsUsable ? `${(poolsUsable / 1024 / 1024 / 1024).toFixed(1)} GB` : "0.0 GB";
 
   const heroStats = [
     {
@@ -91,7 +92,7 @@ export default function Dashboard() {
     },
     {
       label: "Pools usable",
-      value: `${(poolsUsable / 1024 / 1024 / 1024).toFixed(1)} GB`,
+      value: poolsUsableText,
       accent: "from-amber-400/60 to-orange-600/70",
     },
   ];
@@ -221,7 +222,7 @@ export default function Dashboard() {
             <SummaryBadge label="Images" value={data.images_total} />
           </div>
           <p className="text-sm text-gray-400 mt-6">
-            Pools usable: {(poolsUsable / 1024 / 1024 / 1024).toFixed(1)} GB
+            Pools usable: {poolsUsableText}
           </p>
         </div>
       </div>
