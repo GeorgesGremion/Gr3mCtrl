@@ -54,16 +54,16 @@ export default function Dashboard() {
     });
   }, [data]);
 
-  if (isLoading)
+  if (isLoading || !data)
     return (
       <div className="rounded-2xl border border-white/10 p-8 text-white/70 bg-white/5 backdrop-blur-xl">
         Systemmetriken werden geladen...
       </div>
     );
 
-  const gb = (val) => (val / 1024 / 1024 / 1024).toFixed(1);
-  const ramUsage = (data.ram_used / data.ram_total) * 100;
-  const diskUsage = (data.disk_used / data.disk_total) * 100;
+  const gb = (val = 0) => (val / 1024 / 1024 / 1024).toFixed(1);
+  const ramUsage = data.ram_total ? (data.ram_used / data.ram_total) * 100 : 0;
+  const diskUsage = data.disk_total ? (data.disk_used / data.disk_total) * 100 : 0;
   const gaugeData = (value) => [{ name: "usage", value }];
   const poolsSafe = Array.isArray(pools) ? pools : [];
   const sharesSafe = Array.isArray(shares) ? shares : [];
