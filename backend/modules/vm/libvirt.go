@@ -277,7 +277,9 @@ func buildDomainXML(req CreateVMRequest, diskPath string) string {
       <target dev='sda' bus='sata'/>
       <readonly/>\n    </disk>
     %s
-    <graphics type='vnc' port='-1' autoport='yes'/>
+    <graphics type='spice' autoport='yes' listen='0.0.0.0'>
+      <listen type='address' address='0.0.0.0'/>
+    </graphics>
     <console type='pty'/>
   </devices>
 </domain>`, req.Name, req.MemoryMB, req.VCPUs, diskPath, req.ISO, netXML)
@@ -493,6 +495,112 @@ func VNCProxy(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	go func() {
+		buf := make([]byte, 8192)
+		for {
+			n, err := tcp.Read(buf)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			if err := ws.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
+				errCh <- err
+				return
+			}
+		}
+	}()
+
+	<-errCh
+}
+
+// SPICE WebSocket Proxy: /ws/spice/{name}
+func SPICEProxy(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/ws/spice/")
+	name = strings.TrimSpace(name)
+	if name == "" {
+		http.Error(w, "Name fehlt", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	xmlDesc, err := dom.GetXMLDesc(0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type Graphics struct {
+		Type   string `xml:"type,attr"`
+		Port   int    `xml:"port,attr"`
+		Listen struct {
+			Address string `xml:"address,attr"`
+		} `xml:"listen"`
+	}
+	type DomainXML struct {
+		Graphics []Graphics `xml:"devices>graphics"`
+	}
+	var d DomainXML
+	_ = xml.Unmarshal([]byte(xmlDesc), &d)
+
+	var g Graphics
+	for _, gg := range d.Graphics {
+		if gg.Type == "spice" {
+			g = gg
+			break
+		}
+	}
+	if g.Port <= 0 {
+		http.Error(w, "kein SPICE Port gefunden", http.StatusBadRequest)
+		return
+	}
+
+	host := g.Listen.Address
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	port := g.Port
+
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer ws.Close()
+
+	tcp, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		http.Error(w, "tcp dial failed: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer tcp.Close()
+
+	errCh := make(chan error, 2)
+	go func() {
+		for {
+			_, msg, err := ws.ReadMessage()
+			if err != nil {
+				errCh <- err
+				return
+			}
+			if _, err := tcp.Write(msg); err != nil {
+				errCh <- err
+				return
+			}
+		}
+	}()
 	go func() {
 		buf := make([]byte, 8192)
 		for {

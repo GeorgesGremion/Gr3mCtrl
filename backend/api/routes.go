@@ -174,8 +174,9 @@ func RegisterRoutes() {
 		}
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
-	// VNC Websocket Proxy
+	// VNC/SPICE Websocket Proxy
 	http.HandleFunc("/ws/vnc/", vm.VNCProxy)
+	http.HandleFunc("/ws/spice/", vm.SPICEProxy)
 
 	// Storage - ISOs
 	http.HandleFunc("/api/storage/isos", func(w http.ResponseWriter, r *http.Request) {
