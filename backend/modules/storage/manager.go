@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -149,8 +150,9 @@ func RebuildSambaConfig() error {
 	if err != nil {
 		return err
 	}
+	allUsers := loadNASUsernames()
 	var sb strings.Builder
-		for _, s := range sharesState.Shares {
+	for _, s := range sharesState.Shares {
 		if !s.SMB {
 			continue
 		}
@@ -165,6 +167,8 @@ func RebuildSambaConfig() error {
 		valid := ""
 		if len(s.Users) > 0 {
 			valid = strings.Join(s.Users, " ")
+		} else if len(allUsers) > 0 && guest == "no" {
+			valid = strings.Join(allUsers, " ")
 		}
 		sb.WriteString(fmt.Sprintf("[%s]\n", s.Name))
 		sb.WriteString(fmt.Sprintf("    path = %s\n", s.Path))
@@ -194,4 +198,30 @@ func unmountPath(target string) {
 		return
 	}
 	_ = exec.Command("umount", target).Run()
+}
+
+// loadNASUsernames reads nas_users.json to include as valid users when no share-specific users are set.
+func loadNASUsernames() []string {
+	path := "/var/lib/labcore/nas_users.json"
+	data, err := os.ReadFile(path)
+	if err != nil || len(data) == 0 {
+		return nil
+	}
+	type state struct {
+		Users []struct {
+			Username string `json:"username"`
+			Enabled  bool   `json:"enabled"`
+		} `json:"users"`
+	}
+	var st state
+	if err := json.Unmarshal(data, &st); err != nil {
+		return nil
+	}
+	names := []string{}
+	for _, u := range st.Users {
+		if u.Enabled {
+			names = append(names, u.Username)
+		}
+	}
+	return names
 }
