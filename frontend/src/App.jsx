@@ -14,6 +14,7 @@ import ISO from "./pages/ISO";
 import VmNetworks from "./pages/VmNetworks";
 import Pools from "./pages/Pools";
 import Shares from "./pages/Shares";
+import NasUsers from "./pages/NasUsers";
 
 export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
@@ -55,6 +56,10 @@ export default function App() {
       shares: {
         title: "Shares",
         subtitle: "Einfache NAS-Freigaben.",
+      },
+      "nas-users": {
+        title: "NAS Benutzer",
+        subtitle: "SMB-User verwalten.",
       },
       vms: {
         title: "Virtual Machines",
@@ -161,6 +166,7 @@ export default function App() {
             {page === "volumes" && <Volumes />}
             {page === "pools" && <Pools />}
             {page === "shares" && <Shares />}
+            {page === "nas-users" && <NasUsers />}
             {page === "vms" && <VMs />}
             {page === "isos" && <ISO />}
             {page === "vmnets" && <VmNetworks />}

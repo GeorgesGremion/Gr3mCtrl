@@ -24,6 +24,7 @@ type Share struct {
 	Group    string `json:"group"`
 	Mode     string `json:"mode"`
 	IsPublic bool   `json:"is_public"`
+	Users    []string `json:"users,omitempty"`
 }
 
 type shareState struct {

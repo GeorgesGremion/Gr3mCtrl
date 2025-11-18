@@ -6,7 +6,10 @@ toolchain go1.24.10
 
 require (
 	github.com/docker/docker v28.5.2+incompatible
+	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/shirou/gopsutil/v3 v3.24.5
+	libvirt.org/go/libvirt v1.11006.0
 )
 
 require (
@@ -21,7 +24,6 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/sys/atomicwriter v0.1.0 // indirect
@@ -44,5 +46,4 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
-	libvirt.org/go/libvirt v1.11006.0 // indirect
 )

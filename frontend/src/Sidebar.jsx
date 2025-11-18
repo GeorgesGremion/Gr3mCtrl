@@ -27,6 +27,7 @@ export default function Sidebar({ current, onChange }) {
       items: [
         { id: "pools", label: "Pools" },
         { id: "shares", label: "Shares" },
+        { id: "nas-users", label: "NAS Benutzer" },
         { id: "system", label: "System Info" },
         { id: "settings", label: "Settings" },
       ],

@@ -10,6 +10,7 @@ import (
 	"labcore/modules/storage"
 	"labcore/modules/system"
 	"labcore/modules/vm"
+	"labcore/modules/nas"
 )
 
 func RegisterRoutes() {
@@ -248,6 +249,30 @@ func RegisterRoutes() {
 			settings.GetSettings(w, r)
 		case http.MethodPut:
 			settings.UpdateSettings(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	// NAS Users
+	http.HandleFunc("/api/nas/users", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			nas.ListUsers(w, r)
+		case http.MethodPost:
+			nas.CreateUser(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/api/nas/users/", func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut:
+			nas.UpdateUser(w, r)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/pwd"):
+			nas.SetPassword(w, r)
+		case r.Method == http.MethodDelete:
+			nas.DeleteUser(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}

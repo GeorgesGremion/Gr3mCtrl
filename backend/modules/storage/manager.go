@@ -150,7 +150,7 @@ func RebuildSambaConfig() error {
 		return err
 	}
 	var sb strings.Builder
-	for _, s := range sharesState.Shares {
+		for _, s := range sharesState.Shares {
 		if !s.SMB {
 			continue
 		}
@@ -162,6 +162,10 @@ func RebuildSambaConfig() error {
 		if mode == "" {
 			mode = "0775"
 		}
+		valid := ""
+		if len(s.Users) > 0 {
+			valid = strings.Join(s.Users, " ")
+		}
 		sb.WriteString(fmt.Sprintf("[%s]\n", s.Name))
 		sb.WriteString(fmt.Sprintf("    path = %s\n", s.Path))
 		sb.WriteString("    browseable = yes\n")
@@ -171,6 +175,9 @@ func RebuildSambaConfig() error {
 		sb.WriteString(fmt.Sprintf("    force user = %s\n", s.Owner))
 		sb.WriteString(fmt.Sprintf("    force group = %s\n", s.Group))
 		sb.WriteString(fmt.Sprintf("    guest ok = %s\n", guest))
+		if valid != "" && guest == "no" {
+			sb.WriteString(fmt.Sprintf("    valid users = %s\n", valid))
+		}
 		sb.WriteString("\n")
 	}
 	confPath := "/etc/samba/labcore-shares.conf"
