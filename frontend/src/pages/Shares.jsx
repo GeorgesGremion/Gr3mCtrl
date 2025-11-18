@@ -27,8 +27,8 @@ export default function Shares() {
     smb: true,
     nfs: false,
     comment: "",
-    owner: "nobody",
-    group: "nogroup",
+    owner: "",
+    group: "",
     mode: "0775",
     is_public: false,
     users_read: [],
@@ -90,16 +90,30 @@ export default function Shares() {
             </Field>
             <Field label="Owner / Group">
               <div className="grid grid-cols-2 gap-3">
-                <input
+                <select
                   value={form.owner}
                   onChange={(e) => setForm({ ...form, owner: e.target.value })}
                   className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2"
-                />
-                <input
+                >
+                  <option value="">Owner wählen</option>
+                  {nasUsers?.map((u) => (
+                    <option key={u.id} value={u.username}>
+                      {u.username}
+                    </option>
+                  ))}
+                </select>
+                <select
                   value={form.group}
                   onChange={(e) => setForm({ ...form, group: e.target.value })}
                   className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2"
-                />
+                >
+                  <option value="">Gruppe wählen</option>
+                  {nasUsers?.map((u) => (
+                    <option key={u.id} value={u.username}>
+                      {u.username}
+                    </option>
+                  ))}
+                </select>
               </div>
             </Field>
             <Field label="Mode (z.B. 0775)">
