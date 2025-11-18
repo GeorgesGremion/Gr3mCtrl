@@ -56,8 +56,35 @@ func CreateZFSPool(p Pool) error {
 }
 
 func DestroyZFSPool(p Pool) {
+	// best-effort unmount datasets
+	_ = exec.Command("zfs", "unmount", "-f", p.Name+"/shares").Run()
+	_ = exec.Command("zfs", "unmount", "-f", p.Name+"/vm").Run()
+	_ = exec.Command("zfs", "unmount", "-f", p.Name).Run()
+	// destroy datasets recursively
+	_ = exec.Command("zfs", "destroy", "-Rf", p.Name).Run()
 	_ = exec.Command("zpool", "destroy", "-f", p.Name).Run()
-	_ = exec.Command("zpool", "export", p.Name).Run()
+	_ = exec.Command("zpool", "export", "-f", p.Name).Run()
+}
+
+// cleanupPoolDisks wipes partition tables/labels of pool disks (best effort).
+func cleanupPoolDisks(p Pool) error {
+	all := []string{}
+	if p.ParityDisk != "" {
+		all = append(all, strings.TrimPrefix(p.ParityDisk, "/dev/"))
+	}
+	for _, d := range p.DataDisks {
+		if strings.TrimSpace(d) == "" {
+			continue
+		}
+		all = append(all, strings.TrimPrefix(d, "/dev/"))
+	}
+	for _, d := range all {
+		dev := "/dev/" + d
+		_ = exec.Command("zpool", "labelclear", "-f", dev).Run()
+		_ = exec.Command("wipefs", "-a", dev).Run()
+		_ = exec.Command("sgdisk", "--zap-all", dev).Run()
+	}
+	return nil
 }
 
 func getZpoolList() ([]zpoolListEntry, error) {

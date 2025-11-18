@@ -47,29 +47,78 @@ func ensureBaseDir(pool string) (string, error) {
 	return base, nil
 }
 
-// GET /api/compose/stacks
-func ListStacks(w http.ResponseWriter, r *http.Request) {
-	base, err := ensureBaseDir("") // defaults
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func poolList() []string {
+	data, err := os.ReadFile("/var/lib/labcore/pools.json")
+	if err != nil || len(data) == 0 {
+		return nil
 	}
-
-	entries, err := os.ReadDir(base)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	type state struct {
+		Pools []struct {
+			Name string `json:"name"`
+		} `json:"pools"`
 	}
-
-	stacks := make([]StackInfo, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() {
+	var st state
+	if err := json.Unmarshal(data, &st); err != nil {
+		return nil
+	}
+	out := make([]string, 0, len(st.Pools))
+	for _, p := range st.Pools {
+		if strings.TrimSpace(p.Name) == "" {
 			continue
 		}
+		out = append(out, p.Name)
+	}
+	return out
+}
 
-		name := entry.Name()
-		status, services := composeStatus(base, name)
-		stacks = append(stacks, StackInfo{Name: name, Status: status, Services: services})
+func findStack(name string) (base string, pool string, err error) {
+	// default
+	base, _ = ensureBaseDir("")
+	if _, statErr := os.Stat(filepath.Join(base, name)); statErr == nil {
+		return base, "", nil
+	}
+	for _, p := range poolList() {
+		basePool, _ := ensureBaseDir(p)
+		if _, statErr := os.Stat(filepath.Join(basePool, name)); statErr == nil {
+			return basePool, p, nil
+		}
+	}
+	return "", "", errors.New("Stack nicht gefunden")
+}
+
+// GET /api/compose/stacks
+func ListStacks(w http.ResponseWriter, r *http.Request) {
+	baseDefault, err := ensureBaseDir("")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type dirEntry struct {
+		base string
+		pool string
+	}
+	dirs := []dirEntry{{baseDefault, ""}}
+	for _, p := range poolList() {
+		if b, e := ensureBaseDir(p); e == nil {
+			dirs = append(dirs, dirEntry{b, p})
+		}
+	}
+
+	stacks := []StackInfo{}
+	for _, d := range dirs {
+		entries, err := os.ReadDir(d.base)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			name := entry.Name()
+			status, services := composeStatus(d.base, name)
+			stacks = append(stacks, StackInfo{Name: name, Status: status, Services: services, Pool: d.pool})
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -126,7 +175,11 @@ func GetStack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	base, _ := ensureBaseDir("")
+	base, pool, err := findStack(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	composePath := filepath.Join(base, name, "docker-compose.yml")
 	data, err := os.ReadFile(composePath)
 	if err != nil {
@@ -141,7 +194,7 @@ func GetStack(w http.ResponseWriter, r *http.Request) {
 		File:     string(data),
 		Status:   status,
 		Services: services,
-		Pool:     poolFromPath(base),
+		Pool:     pool,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -158,10 +211,13 @@ func GetEnv(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	base, _ := ensureBaseDir("")
+	base, _, err := findStack(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	stackDir := filepath.Join(base, name)
 	envPath := filepath.Join(stackDir, ".env")
-	_, _ = ensureBaseDir("")
 	_ = os.MkdirAll(stackDir, 0o755)
 
 	data, err := os.ReadFile(envPath)
@@ -186,7 +242,11 @@ func SaveEnv(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	base, _ := ensureBaseDir("")
+	base, _, err := findStack(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	stackDir := filepath.Join(base, name)
 	if err := os.MkdirAll(stackDir, 0o755); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -219,7 +279,11 @@ func DeleteStack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	base, _ := ensureBaseDir("")
+	base, _, err := findStack(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	stackDir := filepath.Join(base, name)
 	if _, err := os.Stat(stackDir); err != nil {
 		http.Error(w, "Stack nicht gefunden", http.StatusNotFound)
@@ -243,7 +307,11 @@ func StackAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	base, _ := ensureBaseDir("")
+	base, _, err := findStack(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	composePath := filepath.Join(base, name, "docker-compose.yml")
 	if _, err := os.Stat(composePath); err != nil {
 		http.Error(w, "Compose-File nicht gefunden", http.StatusNotFound)

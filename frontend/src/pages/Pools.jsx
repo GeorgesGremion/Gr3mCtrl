@@ -44,8 +44,11 @@ export default function Pools() {
   });
 
   const del = useMutation({
-    mutationFn: (name) => apiDelete(`/api/storage/pool/${name}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pools"] }),
+    mutationFn: (name) => apiDelete(`/api/storage/pools?name=${encodeURIComponent(name)}`, {
+      data: { name },
+      headers: { "Content-Type": "application/json" },
+    }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pools"], refetchType: "all" }),
   });
 
   return (
@@ -186,12 +189,20 @@ export default function Pools() {
                     Free: {p.usable ? (p.usable / (1024 ** 3)).toFixed(1) : "0.0"} GB
                   </p>
                 </div>
-                <button
-                  onClick={() => del.mutate(p.name)}
-                  className="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-sm"
-                >
-                  Delete
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (confirm(`Pool "${p.name}" wirklich löschen? Daten und Disks werden gewiped.`)) {
+                        del.mutate(p.name);
+                      }
+                    }}
+                    disabled={del.isPending}
+                    className="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-sm disabled:opacity-60"
+                  >
+                    {del.isPending ? "Lösche..." : "Delete"}
+                  </button>
+                  {del.isError && <span className="text-xs text-red-400">{del.error?.response?.data || del.error?.message}</span>}
+                </div>
               </div>
               {p.shares?.length > 0 && (
                 <div className="mt-3 text-sm text-gray-200">

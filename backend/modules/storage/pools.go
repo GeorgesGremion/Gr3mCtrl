@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -30,6 +31,23 @@ type PoolInfo struct {
 
 type poolState struct {
 	Pools []Pool `json:"pools"`
+}
+
+func sharesOnPool(pool string) ([]Share, error) {
+	if pool == "" {
+		return nil, nil
+	}
+	st, err := loadShares()
+	if err != nil {
+		return nil, err
+	}
+	var res []Share
+	for _, s := range st.Shares {
+		if s.Pool == pool {
+			res = append(res, s)
+		}
+	}
+	return res, nil
 }
 
 func loadPools() (poolState, error) {
@@ -143,10 +161,26 @@ func CreatePool(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(p)
 }
 
-// DELETE /api/storage/pool/{name}
+// DELETE /api/storage/pool/{name} oder /api/storage/pools?name=... oder Body {"name": "..."}
 func DeletePool(w http.ResponseWriter, r *http.Request) {
-	name := strings.TrimPrefix(r.URL.Path, "/api/storage/pool/")
-	name = strings.TrimSpace(name)
+	name := ""
+	if strings.HasPrefix(r.URL.Path, "/api/storage/pool/") {
+		name = strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/api/storage/pool/"))
+	}
+	if name == "" {
+		if q := strings.TrimSpace(r.URL.Query().Get("name")); q != "" {
+			name = q
+		}
+	}
+	if name == "" && r.Body != nil {
+		var payload struct {
+			Name string `json:"name"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		if strings.TrimSpace(payload.Name) != "" {
+			name = strings.TrimSpace(payload.Name)
+		}
+	}
 	if name == "" {
 		http.Error(w, "Name fehlt", http.StatusBadRequest)
 		return
@@ -156,6 +190,18 @@ func DeletePool(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// prevent deletion if shares still reside on this pool
+	if attached, err := sharesOnPool(name); err == nil && len(attached) > 0 {
+		msg := "Pool enthält noch Shares: "
+		names := []string{}
+		for _, sh := range attached {
+			names = append(names, sh.Name)
+		}
+		msg += strings.Join(names, ", ") + " – bitte zuerst verschieben oder löschen."
+		http.Error(w, msg, http.StatusConflict)
+		return
+	}
+
 	filtered := st.Pools[:0]
 	var removed Pool
 	for _, p := range st.Pools {
@@ -170,7 +216,13 @@ func DeletePool(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// stop smbd to release mounts (best effort)
+	_ = exec.Command("systemctl", "stop", "smbd").Run()
 	DestroyZFSPool(removed)
+	_ = cleanupPoolDisks(removed)
+	_ = os.RemoveAll(filepath.Join("/mnt/labcore/pools", removed.Name))
+	// restart smbd best effort
+	_ = exec.Command("systemctl", "start", "smbd").Run()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted", "name": name})
 }

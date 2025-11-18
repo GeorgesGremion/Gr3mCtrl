@@ -18,6 +18,7 @@ export default function Compose() {
   const [selected, setSelected] = useState(null);
   const [templateName, setTemplateName] = useState("");
   const [envContent, setEnvContent] = useState("");
+  const [pool, setPool] = useState("");
 
   const { data: stacks, isLoading } = useQuery({
     queryKey: ["compose-stacks"],
@@ -35,6 +36,11 @@ export default function Compose() {
     queryKey: ["volumes"],
     queryFn: () => apiGet("/api/docker/volumes"),
     refetchInterval: 10000,
+  });
+
+  const { data: pools } = useQuery({
+    queryKey: ["pools"],
+    queryFn: () => apiGet("/api/storage/pools"),
   });
 
   const envQuery = useMutation({
@@ -70,6 +76,7 @@ export default function Compose() {
       setName(data.name);
       setContent(data.file);
       setSelected(data.name);
+      setPool(data.pool || "");
       envQuery.mutate(data.name);
     },
   });
@@ -131,6 +138,22 @@ export default function Compose() {
             </div>
 
             <div>
+              <label className="text-sm text-gray-300">Pool (optional)</label>
+              <select
+                value={pool}
+                onChange={(e) => setPool(e.target.value)}
+                className="w-full mt-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 focus:border-blue-500 outline-none"
+              >
+                <option value="">Default (/var/lib/labcore/stacks)</option>
+                {pools?.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label className="text-sm text-gray-300">docker-compose.yml</label>
               <textarea
                 value={content}
@@ -142,7 +165,7 @@ export default function Compose() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => create.mutate({ name, file: content })}
+                onClick={() => create.mutate({ name, file: content, pool })}
                 disabled={create.isPending}
                 className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg py-2 font-semibold shadow-lg shadow-purple-500/30 disabled:opacity-60"
               >
@@ -280,7 +303,7 @@ export default function Compose() {
                 <div>
                   <h3 className="text-2xl font-semibold">{stack.name}</h3>
                   <p className="text-gray-400 text-sm">
-                    Services: {stack.services} · Status: {stack.status}
+                    Services: {stack.services} · Status: {stack.status} · Pool: {stack.pool || "default"}
                   </p>
                   {selected === stack.name && (
                     <p className="text-xs text-emerald-400">Ausgewählt für Bearbeitung</p>

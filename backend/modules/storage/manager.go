@@ -77,8 +77,8 @@ func ResolveSharePath(pool, name, explicit string) string {
 		return explicit
 	}
 	if pool != "" {
-		// Shares standardmäßig im gemergten Pool-Volume ablegen
-		return filepath.Join("/mnt/labcore/pools", pool, "merged", "shares", name)
+		// Shares direkt im Pool-Share-Ordner ablegen
+		return filepath.Join("/mnt/labcore/pools", pool, "shares", name)
 	}
 	return filepath.Join("/var/lib/labcore/data/shares", name)
 }
@@ -202,6 +202,30 @@ func RebuildSambaConfig() error {
 	}
 	_ = exec.Command("systemctl", "reload", "smbd").Run()
 	return nil
+}
+
+func ensurePoolExists(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return nil
+	}
+	data, err := os.ReadFile("/var/lib/labcore/pools.json")
+	if err != nil {
+		return fmt.Errorf("Pool-Liste fehlt: %w", err)
+	}
+	var st struct {
+		Pools []struct {
+			Name string `json:"name"`
+		} `json:"pools"`
+	}
+	if err := json.Unmarshal(data, &st); err != nil {
+		return err
+	}
+	for _, p := range st.Pools {
+		if p.Name == name {
+			return nil
+		}
+	}
+	return fmt.Errorf("Pool %s nicht gefunden", name)
 }
 
 // unmountPath tries to umount if mounted.

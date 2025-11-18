@@ -6,11 +6,11 @@ import (
 
 	"labcore/modules/compose"
 	"labcore/modules/docker"
+	"labcore/modules/nas"
 	"labcore/modules/settings"
 	"labcore/modules/storage"
 	"labcore/modules/system"
 	"labcore/modules/vm"
-	"labcore/modules/nas"
 )
 
 func RegisterRoutes() {
@@ -203,16 +203,11 @@ func RegisterRoutes() {
 			storage.ListPools(w, r)
 		case http.MethodPost:
 			storage.CreatePool(w, r)
+		case http.MethodDelete:
+			storage.DeletePool(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
-	})
-	http.HandleFunc("/api/storage/pool/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodDelete {
-			storage.DeletePool(w, r)
-			return
-		}
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
 	http.HandleFunc("/api/storage/shares", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -225,11 +220,14 @@ func RegisterRoutes() {
 		}
 	})
 	http.HandleFunc("/api/storage/share/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodDelete {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/move") && r.Method == http.MethodPut:
+			storage.MoveShare(w, r)
+		case r.Method == http.MethodDelete:
 			storage.DeleteShare(w, r)
-			return
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
 	http.HandleFunc("/api/storage/disks", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
@@ -239,6 +237,26 @@ func RegisterRoutes() {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
 	http.HandleFunc("/api/storage/disk/format", storage.FormatDisk)
+	http.HandleFunc("/api/storage/smb", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			storage.HandleServiceStatus(w, r, "smbd")
+		case http.MethodPost:
+			storage.HandleServiceAction(w, r, "smbd")
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/api/storage/nfs", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			storage.HandleServiceStatus(w, r, "nfs-server")
+		case http.MethodPost:
+			storage.HandleServiceAction(w, r, "nfs-server")
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	// System Info
 	http.HandleFunc("/api/system/info", system.GetSystemInfo)
