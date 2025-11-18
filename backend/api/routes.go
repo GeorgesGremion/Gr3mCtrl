@@ -254,7 +254,7 @@ func RegisterRoutes() {
 		}
 	})
 
-	// NAS Users
+	// NAS Users (trailing slash tolerant)
 	http.HandleFunc("/api/nas/users", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -273,6 +273,8 @@ func RegisterRoutes() {
 			nas.SetPassword(w, r)
 		case r.Method == http.MethodDelete:
 			nas.DeleteUser(w, r)
+		case r.Method == http.MethodGet:
+			nas.ListUsers(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
