@@ -4,7 +4,7 @@ import { apiDelete, apiGet, apiPost, apiPut } from "../api";
 
 export default function NasUsers() {
   const qc = useQueryClient();
-  const { data: users } = useQuery({
+  const { data: users, isLoading, error: usersError } = useQuery({
     queryKey: ["nas-users"],
     queryFn: () => apiGet("/api/nas/users"),
     refetchInterval: 8000,
@@ -87,10 +87,23 @@ export default function NasUsers() {
             {create.isError && (
               <p className="text-sm text-red-400">{create.error?.response?.data || create.error?.message}</p>
             )}
+            {create.isSuccess && (
+              <p className="text-sm text-emerald-400">Benutzer angelegt.</p>
+            )}
           </div>
         </div>
 
         <div className="lg:col-span-2 space-y-3">
+          {usersError && (
+            <div className="bg-rose-900/30 border border-rose-600 rounded-2xl p-4 text-sm text-rose-100">
+              {usersError?.response?.data || usersError?.message}
+            </div>
+          )}
+          {isLoading && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-gray-300">
+              Lade Benutzer...
+            </div>
+          )}
           {users?.map((u) => (
             <div
               key={u.id}
