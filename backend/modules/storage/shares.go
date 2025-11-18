@@ -14,15 +14,16 @@ import (
 const shareFile = "/var/lib/labcore/shares.json"
 
 type Share struct {
-	Name    string `json:"name"`
-	Pool    string `json:"pool"`
-	Path    string `json:"path"`
-	SMB     bool   `json:"smb"`
-	NFS     bool   `json:"nfs"`
-	Comment string `json:"comment"`
-	Owner   string `json:"owner"`
-	Group   string `json:"group"`
-	Mode    string `json:"mode"`
+	Name     string `json:"name"`
+	Pool     string `json:"pool"`
+	Path     string `json:"path"`
+	SMB      bool   `json:"smb"`
+	NFS      bool   `json:"nfs"`
+	Comment  string `json:"comment"`
+	Owner    string `json:"owner"`
+	Group    string `json:"group"`
+	Mode     string `json:"mode"`
+	IsPublic bool   `json:"is_public"`
 }
 
 type shareState struct {
@@ -150,6 +151,7 @@ func CreateShare(w http.ResponseWriter, r *http.Request) {
 		_ = os.Chmod(s.Path, os.FileMode(mode))
 	}
 	_ = ExportShare(s)
+	_ = RebuildSambaConfig()
 	st.Shares = append(st.Shares, s)
 	if err := saveShares(st); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -184,6 +186,7 @@ func DeleteShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = removeExport(name)
+	_ = RebuildSambaConfig()
 	// remove data on disk
 	path := ResolveSharePath("", name, "")
 	// try also to find exact share path if stored

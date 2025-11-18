@@ -84,43 +84,13 @@ func ResolveSharePath(pool, name, explicit string) string {
 
 // Placeholder for exporting (Samba/NFS) - to be expanded.
 func ExportShare(s Share) error {
-	if !s.SMB && !s.NFS {
-		return nil
-	}
-
-	if s.SMB {
-		if err := os.MkdirAll("/etc/samba/smb.conf.d", 0o755); err != nil {
-			return err
-		}
-		content := fmt.Sprintf("[%s]\npath = %s\nbrowseable = yes\nwritable = yes\nguest ok = yes\ncomment = %s\ncreate mask = %s\ndirectory mask = %s\nforce user = %s\nforce group = %s\n", s.Name, s.Path, s.Comment, s.Mode, s.Mode, s.Owner, s.Group)
-		conf := filepath.Join("/etc/samba/smb.conf.d", "labcore-"+s.Name+".conf")
-		if err := os.WriteFile(conf, []byte(content), 0o644); err != nil {
-			return err
-		}
-		_ = exec.Command("systemctl", "reload", "smbd").Run()
-	}
-	if s.NFS {
-		if err := os.MkdirAll("/etc/exports.d", 0o755); err != nil {
-			return err
-		}
-		line := fmt.Sprintf("%s *(rw,sync,no_subtree_check,no_root_squash)\n", s.Path)
-		conf := filepath.Join("/etc/exports.d", "labcore-"+s.Name+".exports")
-		if err := os.WriteFile(conf, []byte(line), 0o644); err != nil {
-			return err
-		}
-		_ = exec.Command("exportfs", "-ra").Run()
-	}
+	// Export wird über RebuildSambaConfig erledigt
 	return nil
 }
 
 func removeExport(name string) error {
-	smbConf := filepath.Join("/etc/samba/smb.conf.d", "labcore-"+name+".conf")
-	_ = os.Remove(smbConf)
-	_ = exec.Command("systemctl", "reload", "smbd").Run()
-
-	nfsConf := filepath.Join("/etc/exports.d", "labcore-"+name+".exports")
-	_ = os.Remove(nfsConf)
-	_ = exec.Command("exportfs", "-ra").Run()
+	// nur Samba-Config neu schreiben
+	_ = RebuildSambaConfig()
 	return nil
 }
 
@@ -171,6 +141,44 @@ func currentFsType(device string) (string, error) {
 func mountExists(target string) bool {
 	out, _ := exec.Command("findmnt", "-n", target).Output()
 	return len(out) > 0
+}
+
+// RebuildSambaConfig schreibt alle SMB-Shares in /etc/samba/labcore-shares.conf neu und reloaded smbd.
+func RebuildSambaConfig() error {
+	sharesState, err := loadShares()
+	if err != nil {
+		return err
+	}
+	var sb strings.Builder
+	for _, s := range sharesState.Shares {
+		if !s.SMB {
+			continue
+		}
+		guest := "no"
+		if s.IsPublic {
+			guest = "yes"
+		}
+		mode := s.Mode
+		if mode == "" {
+			mode = "0775"
+		}
+		sb.WriteString(fmt.Sprintf("[%s]\n", s.Name))
+		sb.WriteString(fmt.Sprintf("    path = %s\n", s.Path))
+		sb.WriteString("    browseable = yes\n")
+		sb.WriteString("    read only = no\n")
+		sb.WriteString(fmt.Sprintf("    create mask = %s\n", mode))
+		sb.WriteString(fmt.Sprintf("    directory mask = %s\n", mode))
+		sb.WriteString(fmt.Sprintf("    force user = %s\n", s.Owner))
+		sb.WriteString(fmt.Sprintf("    force group = %s\n", s.Group))
+		sb.WriteString(fmt.Sprintf("    guest ok = %s\n", guest))
+		sb.WriteString("\n")
+	}
+	confPath := "/etc/samba/labcore-shares.conf"
+	if err := os.WriteFile(confPath, []byte(sb.String()), 0o644); err != nil {
+		return err
+	}
+	_ = exec.Command("systemctl", "reload", "smbd").Run()
+	return nil
 }
 
 // unmountPath tries to umount if mounted.
