@@ -15,6 +15,11 @@ export default function Shares() {
     queryFn: () => apiGet("/api/storage/pools"),
   });
 
+  const { data: nasUsers } = useQuery({
+    queryKey: ["nas-users"],
+    queryFn: () => apiGet("/api/nas/users"),
+  });
+
   const [form, setForm] = useState({
     name: "share1",
     pool: "",
@@ -26,6 +31,8 @@ export default function Shares() {
     group: "nogroup",
     mode: "0775",
     is_public: false,
+    users_read: [],
+    users_write: [],
   });
 
   const create = useMutation({
@@ -137,6 +144,59 @@ export default function Shares() {
                 Öffentlich (Guest-Zugriff)
               </label>
             </div>
+            {nasUsers && nasUsers.length > 0 && (
+              <div className="space-y-2 text-sm text-gray-200">
+                <p className="text-sm text-gray-300">Benutzerrechte</p>
+                <div className="space-y-2">
+                  {nasUsers.map((u) => {
+                    const rChecked = form.users_read.includes(u.username);
+                    const wChecked = form.users_write.includes(u.username);
+                    return (
+                      <div key={u.id} className="flex items-center justify-between bg-black/30 rounded px-3 py-2">
+                        <div>
+                          <p className="text-white">{u.username}</p>
+                          <p className="text-xs text-gray-400">{u.display_name}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={rChecked}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setForm((prev) => ({
+                                  ...prev,
+                                  users_read: checked
+                                    ? [...prev.users_read, u.username]
+                                    : prev.users_read.filter((x) => x !== u.username),
+                                }));
+                              }}
+                            />
+                            Read
+                          </label>
+                          <label className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={wChecked}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setForm((prev) => ({
+                                  ...prev,
+                                  users_write: checked
+                                    ? [...prev.users_write, u.username]
+                                    : prev.users_write.filter((x) => x !== u.username),
+                                }));
+                              }}
+                            />
+                            Read/Write
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <button
               onClick={() => create.mutate(form)}
               disabled={create.isPending}
@@ -152,7 +212,7 @@ export default function Shares() {
 
         <div className="lg:col-span-2 space-y-4">
           {shares?.map((s) => (
-            <div
+              <div
               key={s.name}
               className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xl shadow-[0_20px_45px_rgba(15,23,42,0.35)] flex flex-wrap items-center justify-between gap-3"
             >
@@ -162,6 +222,14 @@ export default function Shares() {
                 <p className="text-gray-300 text-sm">Pool: {s.pool || "-"}</p>
                 <p className="text-gray-400 text-xs">SMB: {s.smb ? "ja" : "nein"} · NFS: {s.nfs ? "ja" : "nein"}</p>
                 <p className="text-gray-400 text-xs">Öffentlich: {s.is_public ? "ja" : "nein"}</p>
+                {(s.users_read?.length > 0 || s.users_write?.length > 0) && (
+                  <p className="text-gray-400 text-xs">
+                    Benutzer:{" "}
+                    {[...(s.users_read || []), ...(s.users_write || [])]
+                      .filter((v, i, arr) => arr.indexOf(v) === i)
+                      .join(", ")}
+                  </p>
+                )}
                 {s.comment && <p className="text-gray-400 text-xs">{s.comment}</p>}
               </div>
               <button

@@ -165,11 +165,19 @@ func RebuildSambaConfig() error {
 		if mode == "" {
 			mode = "0775"
 		}
-		valid := ""
-		if len(s.Users) > 0 {
-			valid = strings.Join(s.Users, " ")
+		// ACLs
+		validUsers := []string{}
+		if len(s.UsersRead) > 0 || len(s.UsersWrite) > 0 {
+			validUsers = append(validUsers, s.UsersRead...)
+			validUsers = append(validUsers, s.UsersWrite...)
+		} else if len(s.Users) > 0 { // legacy
+			validUsers = append(validUsers, s.Users...)
 		} else if len(allUsers) > 0 && guest == "no" {
-			valid = strings.Join(allUsers, " ")
+			validUsers = append(validUsers, allUsers...)
+		}
+		writeList := []string{}
+		if len(s.UsersWrite) > 0 {
+			writeList = append(writeList, s.UsersWrite...)
 		}
 		sb.WriteString(fmt.Sprintf("[%s]\n", s.Name))
 		sb.WriteString(fmt.Sprintf("    path = %s\n", s.Path))
@@ -180,8 +188,11 @@ func RebuildSambaConfig() error {
 		sb.WriteString(fmt.Sprintf("    force user = %s\n", s.Owner))
 		sb.WriteString(fmt.Sprintf("    force group = %s\n", s.Group))
 		sb.WriteString(fmt.Sprintf("    guest ok = %s\n", guest))
-		if valid != "" && guest == "no" {
-			sb.WriteString(fmt.Sprintf("    valid users = %s\n", valid))
+		if len(validUsers) > 0 && guest == "no" {
+			sb.WriteString(fmt.Sprintf("    valid users = %s\n", strings.Join(validUsers, " ")))
+		}
+		if len(writeList) > 0 {
+			sb.WriteString(fmt.Sprintf("    write list = %s\n", strings.Join(writeList, " ")))
 		}
 		sb.WriteString("\n")
 	}
