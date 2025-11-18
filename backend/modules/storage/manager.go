@@ -150,6 +150,7 @@ func RebuildSambaConfig() error {
 	if err != nil {
 		return err
 	}
+	ensureSmbInclude()
 	allUsers := loadNASUsernames()
 	var sb strings.Builder
 	for _, s := range sharesState.Shares {
@@ -224,4 +225,22 @@ func loadNASUsernames() []string {
 		}
 	}
 	return names
+}
+
+// ensureSmbInclude appends include line to /etc/samba/smb.conf if missing.
+func ensureSmbInclude() {
+	conf := "/etc/samba/smb.conf"
+	data, err := os.ReadFile(conf)
+	if err != nil {
+		return
+	}
+	if strings.Contains(string(data), "include = /etc/samba/labcore-shares.conf") {
+		return
+	}
+	f, err := os.OpenFile(conf, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, _ = f.WriteString("\n# LabCore includes\ninclude = /etc/samba/labcore-shares.conf\n")
 }
