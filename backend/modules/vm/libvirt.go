@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"ggithub/modules/settings"
+	"ggithub/modules/storage"
 	"github.com/gorilla/websocket"
-	"labcore/modules/settings"
-	"labcore/modules/storage"
 	"libvirt.org/go/libvirt"
 )
 
@@ -199,7 +199,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request) {
 	vmDir := filepath.Join(cfg.DataPath, "vm", req.Name)
 	if req.Pool != "" {
 		// store disks on pool vm dataset
-		vmDir = filepath.Join("/mnt/labcore/pools", req.Pool, "vm", req.Name)
+		vmDir = filepath.Join("/mnt/ggithub/pools", req.Pool, "vm", req.Name)
 	}
 	diskPath := filepath.Join(vmDir, req.Name+".qcow2")
 	if err := os.MkdirAll(vmDir, 0o755); err != nil {

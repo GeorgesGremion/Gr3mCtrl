@@ -15,7 +15,7 @@ func MountPool(pool Pool) error {
 	if err := EnsurePoolDirs(pool.Name); err != nil {
 		return err
 	}
-	base := filepath.Join("/mnt/labcore/pools", pool.Name)
+	base := filepath.Join("/mnt/ggithub/pools", pool.Name)
 	dataMounts := []string{}
 	for _, d := range pool.DataDisks {
 		if d == "" {
@@ -45,7 +45,7 @@ func MountPool(pool Pool) error {
 
 // EnsurePoolMounted checks if merged mount exists; wenn nicht, mountet neu.
 func EnsurePoolMounted(pool Pool) error {
-	base := filepath.Join("/mnt/labcore/pools", pool.Name)
+	base := filepath.Join("/mnt/ggithub/pools", pool.Name)
 	merged := filepath.Join(base, "merged")
 	if mountExists(merged) {
 		return nil
@@ -55,7 +55,7 @@ func EnsurePoolMounted(pool Pool) error {
 
 // EnsurePoolDirs ensures base paths exist.
 func EnsurePoolDirs(poolName string) error {
-	base := filepath.Join("/mnt/labcore/pools", poolName)
+	base := filepath.Join("/mnt/ggithub/pools", poolName)
 	sub := []string{
 		base,
 		filepath.Join(base, "data"),
@@ -78,9 +78,9 @@ func ResolveSharePath(pool, name, explicit string) string {
 	}
 	if pool != "" {
 		// Shares direkt im Pool-Share-Ordner ablegen
-		return filepath.Join("/mnt/labcore/pools", pool, "shares", name)
+		return filepath.Join("/mnt/ggithub/pools", pool, "shares", name)
 	}
-	return filepath.Join("/var/lib/labcore/data/shares", name)
+	return filepath.Join("/var/lib/ggithub/data/shares", name)
 }
 
 // Placeholder for exporting (Samba/NFS) - to be expanded.
@@ -144,7 +144,7 @@ func mountExists(target string) bool {
 	return len(out) > 0
 }
 
-// RebuildSambaConfig schreibt alle SMB-Shares in /etc/samba/labcore-shares.conf neu und reloaded smbd.
+// RebuildSambaConfig schreibt alle SMB-Shares in /etc/samba/ggithub-shares.conf neu und reloaded smbd.
 func RebuildSambaConfig() error {
 	sharesState, err := loadShares()
 	if err != nil {
@@ -196,7 +196,7 @@ func RebuildSambaConfig() error {
 		}
 		sb.WriteString("\n")
 	}
-	confPath := "/etc/samba/labcore-shares.conf"
+	confPath := "/etc/samba/ggithub-shares.conf"
 	if err := os.WriteFile(confPath, []byte(sb.String()), 0o644); err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func ensurePoolExists(name string) error {
 	if strings.TrimSpace(name) == "" {
 		return nil
 	}
-	data, err := os.ReadFile("/var/lib/labcore/pools.json")
+	data, err := os.ReadFile("/var/lib/ggithub/pools.json")
 	if err != nil {
 		return fmt.Errorf("Pool-Liste fehlt: %w", err)
 	}
@@ -238,7 +238,7 @@ func unmountPath(target string) {
 
 // loadNASUsernames reads nas_users.json to include as valid users when no share-specific users are set.
 func loadNASUsernames() []string {
-	path := "/var/lib/labcore/nas_users.json"
+	path := "/var/lib/ggithub/nas_users.json"
 	data, err := os.ReadFile(path)
 	if err != nil || len(data) == 0 {
 		return nil
@@ -269,7 +269,7 @@ func ensureSmbInclude() {
 	if err != nil {
 		return
 	}
-	if strings.Contains(string(data), "include = /etc/samba/labcore-shares.conf") {
+	if strings.Contains(string(data), "include = /etc/samba/ggithub-shares.conf") {
 		return
 	}
 	f, err := os.OpenFile(conf, os.O_APPEND|os.O_WRONLY, 0)
@@ -277,5 +277,5 @@ func ensureSmbInclude() {
 		return
 	}
 	defer f.Close()
-	_, _ = f.WriteString("\n# LabCore includes\ninclude = /etc/samba/labcore-shares.conf\n")
+	_, _ = f.WriteString("\n# GGITHub includes\ninclude = /etc/samba/ggithub-shares.conf\n")
 }

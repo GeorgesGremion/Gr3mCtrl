@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"strings"
 
-	"labcore/modules/compose"
-	"labcore/modules/docker"
-	"labcore/modules/nas"
-	"labcore/modules/settings"
-	"labcore/modules/storage"
-	"labcore/modules/system"
-	"labcore/modules/vm"
+	"ggithub/modules/compose"
+	"ggithub/modules/docker"
+	"ggithub/modules/nas"
+	"ggithub/modules/settings"
+	"ggithub/modules/storage"
+	"ggithub/modules/system"
+	"ggithub/modules/vm"
 )
 
 func RegisterRoutes() {

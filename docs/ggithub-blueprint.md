@@ -1,4 +1,4 @@
-# LabCore Blueprint – Next Milestone
+# GGITHub Blueprint – Next Milestone
 
 ## 1. Produktvision
 
@@ -28,11 +28,11 @@ Alle Dienste laufen lokal, spätere Multi-Host-Erweiterungen können über den b
 
 Persistente Daten / Artefakte:
 
-- `/var/lib/labcore/config.json` (globale Settings)
-- `/var/lib/labcore/stacks/<stack>/docker-compose.yml`
-- `/var/lib/labcore/isos/<file>.iso`
-- `/var/lib/labcore/templates/<vm>.json`
-- `/var/lib/labcore/state.db` (BoltDB oder LiteFS für Metadaten)
+- `/var/lib/ggithub/config.json` (globale Settings)
+- `/var/lib/ggithub/stacks/<stack>/docker-compose.yml`
+- `/var/lib/ggithub/isos/<file>.iso`
+- `/var/lib/ggithub/templates/<vm>.json`
+- `/var/lib/ggithub/state.db` (BoltDB oder LiteFS für Metadaten)
 
 ### 2.2 Docker & Compose
 
@@ -86,7 +86,7 @@ Persistente Daten / Artefakte:
 - Storage Pools (libvirt) + LVM/Dir Pools.
 - Volume CRUD (qcow2, raw): `/api/storage/volumes`.
 - ISO-Library:
-  - Upload (multi-part) → `/var/lib/labcore/isos`.
+  - Upload (multi-part) → `/var/lib/ggithub/isos`.
   - GET `/api/storage/isos` → metadata (size, checksum).
   - Action: `attach` (VM id, iso name).
 

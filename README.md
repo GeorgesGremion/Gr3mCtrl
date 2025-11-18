@@ -1,4 +1,4 @@
-# LabCore
+# GGITHub
 
 Ein schlankes Homelab- und Bare-Metal-Manager inspiriert von Proxmox / Portainer / TrueNAS:
 - **Backend:** Go (Docker API v1.28+, libvirt/KVM, ZFS, Samba/NFS)
@@ -20,15 +20,15 @@ Frontend erwartet den Backend-Port 8080 unter `/api/...`.
 
 ## Storage (ZFS-Pools)
 - Pools werden als ZFS-Pool mit Layout stripe/mirror/raidz* angelegt.
-- Pfade: `/mnt/labcore/pools/<pool>/{vm,shares,isos,docker,...}`.
+- Pfade: `/mnt/ggithub/pools/<pool>/{vm,shares,isos,docker,...}`.
 - ISOs können pro Pool hochgeladen werden (`/api/storage/isos?pool=<pool>`).
 
 ## Docker / Compose
-- Stacks werden poolfähig unter `/mnt/labcore/pools/<pool>/docker/<stack>/` gespeichert (compose.yml, .env).
+- Stacks werden poolfähig unter `/mnt/ggithub/pools/<pool>/docker/<stack>/` gespeichert (compose.yml, .env).
 - Volumes können auf Pools gebunden werden.
 
 ## VMs
-- libvirt/KVM; Disks bei Pool-Wahl unter `/mnt/labcore/pools/<pool>/vm/<name>/`.
+- libvirt/KVM; Disks bei Pool-Wahl unter `/mnt/ggithub/pools/<pool>/vm/<name>/`.
 - VNC-Console im Browser, On-Screen-Keyboard.
 
 ## Systemvoraussetzungen

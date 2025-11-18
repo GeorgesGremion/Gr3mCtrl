@@ -84,7 +84,7 @@ export default function Networks() {
                 value={form.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                placeholder="labcore_network"
+                placeholder="ggithub_network"
                 required
               />
             </div>

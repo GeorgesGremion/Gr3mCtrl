@@ -22,7 +22,7 @@ func CreateZFSPool(p Pool) error {
 	}
 	args := []string{"create", "-f"}
 	// ensure mountpoint base exists
-	_ = exec.Command("mkdir", "-p", filepath.Join("/mnt/labcore/pools", p.Name)).Run()
+	_ = exec.Command("mkdir", "-p", filepath.Join("/mnt/ggithub/pools", p.Name)).Run()
 	layout := strings.ToLower(p.Layout)
 	switch layout {
 	case "mirror":
@@ -45,7 +45,7 @@ func CreateZFSPool(p Pool) error {
 		return fmt.Errorf("zpool create: %s %w", string(out), err)
 	}
 	// Set mountpoint for root dataset
-	mp := filepath.Join("/mnt/labcore/pools", p.Name)
+	mp := filepath.Join("/mnt/ggithub/pools", p.Name)
 	_ = exec.Command("zfs", "set", "mountpoint="+mp, p.Name).Run()
 	// Create datasets for shares/vm
 	_ = exec.Command("zfs", "create", p.Name+"/shares").Run()
@@ -136,7 +136,7 @@ func buildZfsPoolInfo(pools []Pool, shares []Share) []PoolInfo {
 				pi.Shares = append(pi.Shares, sh)
 			}
 		}
-		mp := filepath.Join("/mnt/labcore/pools", p.Name)
+		mp := filepath.Join("/mnt/ggithub/pools", p.Name)
 		pi.Mounts = []string{mp}
 		info = append(info, pi)
 	}

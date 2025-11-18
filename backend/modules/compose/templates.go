@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const templateDir = "/var/lib/labcore/templates"
+const templateDir = "/var/lib/ggithub/templates"
 
 type Template struct {
 	Name string `json:"name"`

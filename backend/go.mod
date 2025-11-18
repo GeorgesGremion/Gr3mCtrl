@@ -1,4 +1,4 @@
-module labcore
+module ggithub
 
 go 1.24.0
 

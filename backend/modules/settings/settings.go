@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-const configPath = "/var/lib/labcore/config.json"
-const defaultDataPath = "/var/lib/labcore/data"
+const configPath = "/var/lib/ggithub/config.json"
+const defaultDataPath = "/var/lib/ggithub/data"
 
 type Config struct {
 	DataPath    string `json:"data_path"`

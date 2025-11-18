@@ -144,7 +144,7 @@ export default function Compose() {
                 onChange={(e) => setPool(e.target.value)}
                 className="w-full mt-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 focus:border-blue-500 outline-none"
               >
-                <option value="">Default (/var/lib/labcore/stacks)</option>
+                <option value="">Default (/var/lib/ggithub/stacks)</option>
                 {pools?.map((p) => (
                   <option key={p.name} value={p.name}>
                     {p.name}

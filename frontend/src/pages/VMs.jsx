@@ -8,7 +8,7 @@ export default function VMs() {
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
-    name: "labcore-vm",
+    name: "ggithub-vm",
     memory_mb: 2048,
     vcpus: 2,
     disk_gb: 20,
@@ -295,7 +295,7 @@ export default function VMs() {
               onChange={(e) => setForm({ ...form, pool: e.target.value })}
               className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2"
             >
-              <option value="">Default (/var/lib/labcore/data)</option>
+              <option value="">Default (/var/lib/ggithub/data)</option>
               {pools?.map((p) => (
                 <option key={p.name} value={p.name}>
                   {p.name} (usable {(p.usable / (1024 ** 3)).toFixed(1)} GB)
