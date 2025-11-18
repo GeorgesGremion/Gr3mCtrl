@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const poolFile = "/var/lib/ggithub/pools.json"
+const poolFile = "/var/lib/c0r3nex/pools.json"
 
 type Pool struct {
 	Name       string   `json:"name"`
@@ -220,7 +220,7 @@ func DeletePool(w http.ResponseWriter, r *http.Request) {
 	_ = exec.Command("systemctl", "stop", "smbd").Run()
 	DestroyZFSPool(removed)
 	_ = cleanupPoolDisks(removed)
-	_ = os.RemoveAll(filepath.Join("/mnt/ggithub/pools", removed.Name))
+	_ = os.RemoveAll(filepath.Join("/mnt/c0r3nex/pools", removed.Name))
 	// restart smbd best effort
 	_ = exec.Command("systemctl", "start", "smbd").Run()
 	w.Header().Set("Content-Type", "application/json")

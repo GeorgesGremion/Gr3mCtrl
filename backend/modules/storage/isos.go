@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const isoDir = "/var/lib/ggithub/isos"
+const isoDir = "/var/lib/c0r3nex/isos"
 
 type ISOInfo struct {
 	Name  string `json:"name"`
@@ -21,7 +21,7 @@ type ISOInfo struct {
 
 func ensureISODir(pool string) (string, error) {
 	if pool != "" {
-		path := filepath.Join("/mnt/ggithub/pools", pool, "isos")
+		path := filepath.Join("/mnt/c0r3nex/pools", pool, "isos")
 		return path, os.MkdirAll(path, 0o755)
 	}
 	return isoDir, os.MkdirAll(isoDir, 0o755)

@@ -71,8 +71,8 @@ export default function Shares() {
 
   const basePath =
     form.pool && form.name
-      ? `/mnt/ggithub/pools/${form.pool}/shares/${form.name}`
-      : `/var/lib/ggithub/data/shares/${form.name || "share"}`;
+      ? `/mnt/c0r3nex/pools/${form.pool}/shares/${form.name}`
+      : `/var/lib/c0r3nex/data/shares/${form.name || "share"}`;
 
   useEffect(() => {
     if (!pathTouched) {

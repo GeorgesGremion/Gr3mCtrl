@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const templateDir = "/var/lib/ggithub/templates"
+const templateDir = "/var/lib/c0r3nex/templates"
 
 type Template struct {
 	Name string `json:"name"`

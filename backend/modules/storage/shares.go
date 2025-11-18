@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const shareFile = "/var/lib/ggithub/shares.json"
+const shareFile = "/var/lib/c0r3nex/shares.json"
 
 type Share struct {
 	Name       string   `json:"name"`

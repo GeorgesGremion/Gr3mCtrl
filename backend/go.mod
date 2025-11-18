@@ -1,4 +1,4 @@
-module ggithub
+module c0r3nex
 
 go 1.24.0
 

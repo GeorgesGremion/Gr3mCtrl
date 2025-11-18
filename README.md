@@ -1,4 +1,4 @@
-# GGITHub
+# C0R3NEX
 
 Ein schlankes Homelab- und Bare-Metal-Manager inspiriert von Proxmox / Portainer / TrueNAS:
 - **Backend:** Go (Docker API v1.28+, libvirt/KVM, ZFS, Samba/NFS)
@@ -20,15 +20,15 @@ Frontend erwartet den Backend-Port 8080 unter `/api/...`.
 
 ## Storage (ZFS-Pools)
 - Pools werden als ZFS-Pool mit Layout stripe/mirror/raidz* angelegt.
-- Pfade: `/mnt/ggithub/pools/<pool>/{vm,shares,isos,docker,...}`.
+- Pfade: `/mnt/c0r3nex/pools/<pool>/{vm,shares,isos,docker,...}`.
 - ISOs können pro Pool hochgeladen werden (`/api/storage/isos?pool=<pool>`).
 
 ## Docker / Compose
-- Stacks werden poolfähig unter `/mnt/ggithub/pools/<pool>/docker/<stack>/` gespeichert (compose.yml, .env).
+- Stacks werden poolfähig unter `/mnt/c0r3nex/pools/<pool>/docker/<stack>/` gespeichert (compose.yml, .env).
 - Volumes können auf Pools gebunden werden.
 
 ## VMs
-- libvirt/KVM; Disks bei Pool-Wahl unter `/mnt/ggithub/pools/<pool>/vm/<name>/`.
+- libvirt/KVM; Disks bei Pool-Wahl unter `/mnt/c0r3nex/pools/<pool>/vm/<name>/`.
 - VNC-Console im Browser, On-Screen-Keyboard.
 
 ## Systemvoraussetzungen

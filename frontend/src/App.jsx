@@ -83,7 +83,7 @@ export default function App() {
 
   const activeMeta =
     pageMeta[page] ?? {
-      title: "GGITHub Suite",
+      title: "C0R3NEX Suite",
       subtitle: "Unified control for homelab workloads.",
     };
 
@@ -136,7 +136,7 @@ export default function App() {
         <header className="px-6 lg:px-12 py-6 border-b border-white/10 bg-black/30 backdrop-blur-xl flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-400 mb-1">
-              GGITHub Mission Control
+              C0R3NEX Mission Control
             </p>
             <h1 className="text-3xl lg:text-4xl font-semibold text-white">
               {activeMeta.title}
