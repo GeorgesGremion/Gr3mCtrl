@@ -25,6 +25,7 @@ export default function Shares() {
     owner: "nobody",
     group: "nogroup",
     mode: "0775",
+    is_public: false,
   });
 
   const create = useMutation({
@@ -126,6 +127,16 @@ export default function Shares() {
                 className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2"
               />
             </Field>
+            <div className="flex items-center gap-3 text-sm text-gray-200">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.is_public}
+                  onChange={(e) => setForm({ ...form, is_public: e.target.checked })}
+                />
+                Öffentlich (Guest-Zugriff)
+              </label>
+            </div>
             <button
               onClick={() => create.mutate(form)}
               disabled={create.isPending}
@@ -150,6 +161,7 @@ export default function Shares() {
                 <p className="text-gray-300 text-sm">Pfad: {s.path}</p>
                 <p className="text-gray-300 text-sm">Pool: {s.pool || "-"}</p>
                 <p className="text-gray-400 text-xs">SMB: {s.smb ? "ja" : "nein"} · NFS: {s.nfs ? "ja" : "nein"}</p>
+                <p className="text-gray-400 text-xs">Öffentlich: {s.is_public ? "ja" : "nein"}</p>
                 {s.comment && <p className="text-gray-400 text-xs">{s.comment}</p>}
               </div>
               <button
