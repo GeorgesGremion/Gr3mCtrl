@@ -27,6 +27,8 @@ type PoolInfo struct {
 	Shares     []Share  `json:"shares"`
 	Mounts     []string `json:"mounts"`
 	Health     string   `json:"health"`
+	Orphan     bool     `json:"orphan"`
+	Detected   []string `json:"detected_disks,omitempty"`
 }
 
 type poolState struct {
@@ -202,25 +204,39 @@ func DeletePool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filtered := st.Pools[:0]
+	filtered := make([]Pool, 0, len(st.Pools))
 	var removed Pool
+	found := false
 	for _, p := range st.Pools {
 		if p.Name != name {
 			filtered = append(filtered, p)
 		} else {
 			removed = p
+			found = true
 		}
 	}
-	st.Pools = filtered
-	if err := savePools(st); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if found {
+		st.Pools = filtered
+		if err := savePools(st); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	target := removed
+	if !found {
+		target = Pool{
+			Name:      name,
+			Layout:    "zfs",
+			DataDisks: detectZpoolDevices()[name],
+		}
 	}
 	// stop smbd to release mounts (best effort)
 	_ = exec.Command("systemctl", "stop", "smbd").Run()
-	DestroyZFSPool(removed)
-	_ = cleanupPoolDisks(removed)
-	_ = os.RemoveAll(filepath.Join("/mnt/gr3mctrl/pools", removed.Name))
+	DestroyZFSPool(target)
+	_ = cleanupPoolDisks(target)
+	if target.Name != "" {
+		_ = os.RemoveAll(filepath.Join("/mnt/gr3mctrl/pools", target.Name))
+	}
 	// restart smbd best effort
 	_ = exec.Command("systemctl", "start", "smbd").Run()
 	w.Header().Set("Content-Type", "application/json")

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../api";
 
 export default function Pools() {
@@ -7,6 +7,9 @@ export default function Pools() {
   const [name, setName] = useState("pool1");
   const [selectedDisks, setSelectedDisks] = useState([]);
   const [layout, setLayout] = useState("stripe");
+  const [formatTarget, setFormatTarget] = useState("");
+  const [formatMessage, setFormatMessage] = useState("");
+  const [formatError, setFormatError] = useState("");
 
   const { data: pools } = useQuery({
     queryKey: ["pools"],
@@ -21,7 +24,21 @@ export default function Pools() {
   });
   const format = useMutation({
     mutationFn: (payload) => apiPost("/api/storage/disk/format", payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["disks"] }),
+    onMutate: (payload) => {
+      setFormatTarget(payload?.device || "");
+      setFormatMessage("");
+      setFormatError("");
+    },
+    onError: (err) => {
+      setFormatError(err?.response?.data || err?.message || "Formatieren fehlgeschlagen");
+    },
+    onSuccess: () => {
+      setFormatMessage("Disk formatiert.");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["disks"] });
+      setFormatTarget("");
+    },
   });
 
   const availableDisks = useMemo(
@@ -33,10 +50,27 @@ export default function Pools() {
     [disks]
   );
 
+  const poolDevices = useMemo(() => {
+    const set = new Set();
+    (pools || []).forEach((pool) => {
+      const devs = [...(pool.data_disks || []), ...(pool.detected_disks || [])];
+      devs.forEach((dev) => {
+        const normalized = (dev || "").replace("/dev/", "");
+        if (normalized) set.add(normalized);
+      });
+    });
+    return set;
+  }, [pools]);
+
   const selectableDataDisks = useMemo(
-    () => availableDisks.filter((d) => !d.used),
-    [availableDisks]
+    () => availableDisks.filter((d) => !d.used && !poolDevices.has(d.name)),
+    [availableDisks, poolDevices]
   );
+
+  const handleFormat = (device) => {
+    if (!device || format.isPending) return;
+    format.mutate({ device, force: true });
+  };
 
   const create = useMutation({
     mutationFn: (payload) => apiPost("/api/storage/pools", payload),
@@ -90,9 +124,7 @@ export default function Pools() {
                 <button
                   type="button"
                   className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20"
-                  onClick={() =>
-                    setSelectedDisks(selectableDataDisks.map((d) => `/dev/${d.name}`))
-                  }
+                  onClick={() => setSelectedDisks(selectableDataDisks.map((d) => `/dev/${d.name}`))}
                 >
                   Alle freien wählen
                 </button>
@@ -161,15 +193,20 @@ export default function Pools() {
                 </thead>
                 <tbody>
                   {disks?.map((d) => (
-                    <DiskRow key={d.name} disk={d} level={0} onFormat={(dev) => format.mutate({ device: dev })} />
+                    <DiskRow
+                      key={d.name}
+                      disk={d}
+                      level={0}
+                      onFormat={(dev) => handleFormat(dev)}
+                      formatPending={format.isPending}
+                      formattingDevice={formatTarget}
+                    />
                   ))}
                 </tbody>
               </table>
             </div>
-            {format.isError && (
-              <p className="text-sm text-red-400 mt-2">{format.error?.response?.data || format.error?.message}</p>
-            )}
-            {format.isSuccess && <p className="text-sm text-emerald-400 mt-2">Disk formatiert.</p>}
+            {formatError && <p className="text-sm text-red-400 mt-2">{formatError}</p>}
+            {formatMessage && <p className="text-sm text-emerald-400 mt-2">{formatMessage}</p>}
           </div>
           {pools?.map((p) => (
             <div
@@ -177,10 +214,22 @@ export default function Pools() {
               className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xl shadow-[0_20px_45px_rgba(15,23,42,0.35)]"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+                <div className="flex flex-col gap-1">
                   <h3 className="text-xl font-semibold">{p.name}</h3>
+                  {p.orphan && (
+                    <span className="inline-flex items-center gap-2 text-xs text-amber-300">
+                      ⚠️ Verwaister Pool – nur noch in ZFS vorhanden
+                    </span>
+                  )}
                   <p className="text-gray-300 text-sm">Layout: {p.layout || "stripe"}</p>
-                  <p className="text-gray-300 text-sm">Disks: {p.data_disks?.length ? p.data_disks.join(", ") : "-"}</p>
+                  <p className="text-gray-300 text-sm">
+                    Disks:{" "}
+                    {p.data_disks?.length
+                      ? p.data_disks.join(", ")
+                      : p.detected_disks?.length
+                        ? p.detected_disks.join(", ")
+                        : "-"}
+                  </p>
                   <p className="text-gray-300 text-sm">Health: {p.health || "unknown"}</p>
                   <p className="text-gray-300 text-sm">
                     Total: {p.total_data ? (p.total_data / (1024 ** 3)).toFixed(1) : "0.0"} GB
@@ -192,7 +241,10 @@ export default function Pools() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      if (confirm(`Pool "${p.name}" wirklich löschen? Daten und Disks werden gewiped.`)) {
+                      const message = p.orphan
+                        ? `Verwaisten Pool "${p.name}" systemweit zerstören? Alle Disks werden gewiped.`
+                        : `Pool "${p.name}" wirklich löschen? Daten und Disks werden gewiped.`;
+                      if (confirm(message)) {
                         del.mutate(p.name);
                       }
                     }}
@@ -231,7 +283,7 @@ const Field = ({ label, children }) => (
   </div>
 );
 
-const DiskRow = ({ disk, level, onFormat }) => {
+const DiskRow = ({ disk, level, onFormat, formatPending, formattingDevice }) => {
   const indent = level * 16;
   return (
     <>
@@ -247,15 +299,23 @@ const DiskRow = ({ disk, level, onFormat }) => {
           {!disk.mountpoint && disk.type === "disk" && (
             <button
               onClick={() => onFormat && onFormat(`/dev/${disk.name}`)}
-              className="px-3 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700"
+              disabled={formatPending}
+              className="px-3 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-60"
             >
-              Formatieren
+              {formatPending && formattingDevice === `/dev/${disk.name}` ? "Formatiere..." : "Formatieren"}
             </button>
           )}
         </td>
       </tr>
       {disk.children?.map((c) => (
-        <DiskRow key={`${disk.name}-${c.name}`} disk={c} level={level + 1} onFormat={onFormat} />
+        <DiskRow
+          key={`${disk.name}-${c.name}`}
+          disk={c}
+          level={level + 1}
+          onFormat={onFormat}
+          formatPending={formatPending}
+          formattingDevice={formattingDevice}
+        />
       ))}
     </>
   );

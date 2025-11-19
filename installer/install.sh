@@ -8,7 +8,7 @@ REPO_URL="https://github.com/GeorgesGremion/LabCore.git"
 REPO_BRANCH="v0.1.0"
 DATA_DIR="/var/lib/gr3mctrl"
 MNT_DIR="/mnt/gr3mctrl"
-BACKEND_BIN="$APP_DIR/backend/gr3mctrl"
+BACKEND_BIN="/usr/local/bin/gr3mctrl"
 FRONTEND_DIR="$APP_DIR/frontend"
 SERVICE_BACKEND="gr3mctrl-backend.service"
 SERVICE_FRONTEND="gr3mctrl-frontend.service"
@@ -23,7 +23,7 @@ install_prereqs(){
     ca-certificates curl git \
     qemu-system-x86 libvirt-daemon-system libvirt-clients libvirt-dev \
     zfsutils-linux samba nfs-kernel-server \
-    nodejs npm golang pkg-config build-essential
+    nodejs npm golang pkg-config build-essential rsync
 
   # Docker aus dem offiziellen Repo inkl. compose v2 Plugin
   apt-get remove -y docker docker.io docker-doc docker-compose podman-docker containerd runc || true
@@ -82,6 +82,7 @@ After=network.target docker.service
 Type=simple
 User=$APP_USER
 WorkingDirectory=$APP_DIR/backend
+ExecStartPre=/usr/bin/env bash -lc 'cd $APP_DIR/backend && go build -o $BACKEND_BIN ./main.go'
 ExecStart=$BACKEND_BIN
 Restart=always
 
@@ -98,7 +99,8 @@ After=network.target
 Type=simple
 User=$APP_USER
 WorkingDirectory=$FRONTEND_DIR
-ExecStart=/usr/bin/env bash -lc "npx serve -s dist -l 4173"
+ExecStartPre=/usr/bin/env bash -lc 'cd $FRONTEND_DIR && npm install && npm run build'
+ExecStart=/usr/bin/env bash -lc 'cd $FRONTEND_DIR && npm run preview -- --host 0.0.0.0 --port 4173'
 Restart=always
 
 [Install]

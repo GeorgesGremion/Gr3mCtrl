@@ -56,6 +56,9 @@ func CreateZFSPool(p Pool) error {
 }
 
 func DestroyZFSPool(p Pool) {
+	if strings.TrimSpace(p.Name) == "" {
+		return
+	}
 	// best-effort unmount datasets
 	_ = exec.Command("zfs", "unmount", "-f", p.Name+"/shares").Run()
 	_ = exec.Command("zfs", "unmount", "-f", p.Name+"/vm").Run()
@@ -118,7 +121,9 @@ func getZpoolList() ([]zpoolListEntry, error) {
 
 func buildZfsPoolInfo(pools []Pool, shares []Share) []PoolInfo {
 	zlist, _ := getZpoolList()
+	deviceMap := detectZpoolDevices()
 	info := make([]PoolInfo, 0, len(pools))
+	seen := make(map[string]bool)
 	for _, p := range pools {
 		pi := PoolInfo{Pool: p}
 		for _, z := range zlist {
@@ -131,6 +136,9 @@ func buildZfsPoolInfo(pools []Pool, shares []Share) []PoolInfo {
 		if p.Name == "rpool" || p.Name == "root" {
 			pi.Health = "system"
 		}
+		if devices, ok := deviceMap[p.Name]; ok && len(devices) > 0 {
+			pi.Detected = devices
+		}
 		for _, sh := range shares {
 			if sh.Pool == p.Name {
 				pi.Shares = append(pi.Shares, sh)
@@ -138,6 +146,26 @@ func buildZfsPoolInfo(pools []Pool, shares []Share) []PoolInfo {
 		}
 		mp := filepath.Join("/mnt/gr3mctrl/pools", p.Name)
 		pi.Mounts = []string{mp}
+		info = append(info, pi)
+		seen[p.Name] = true
+	}
+	for _, z := range zlist {
+		if seen[z.Name] {
+			continue
+		}
+		pi := PoolInfo{
+			Pool: Pool{
+				Name:      z.Name,
+				Layout:    "zfs",
+				DataDisks: deviceMap[z.Name],
+			},
+			TotalData: z.Size,
+			Usable:    z.Free,
+			Health:    z.Health,
+			Orphan:    true,
+			Mounts:    []string{filepath.Join("/mnt/gr3mctrl/pools", z.Name)},
+			Detected:  deviceMap[z.Name],
+		}
 		info = append(info, pi)
 	}
 	return info

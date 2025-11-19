@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -53,8 +54,30 @@ func FormatDisk(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Disk ist gemountet oder belegt; Force nutzen, wenn sicher", http.StatusBadRequest)
 		return
 	}
-	if err := formatDiskIfNeeded(dev); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if poolName := detectZpoolForDevice(dev); poolName != "" {
+		http.Error(
+			w,
+			fmt.Sprintf("Disk %s gehört zum aktiven ZFS-Pool %s. Bitte Pool zuerst löschen oder exportieren.", dev, poolName),
+			http.StatusConflict,
+		)
+		return
+	}
+	if payload.Force {
+		for _, mp := range collectMounts(disk) {
+			if mp == "" {
+				continue
+			}
+			_ = exec.Command("umount", "-f", mp).Run()
+		}
+	}
+	var formatErr error
+	if payload.Force {
+		formatErr = forceFormatDisk(dev)
+	} else {
+		formatErr = formatDiskIfNeeded(dev)
+	}
+	if formatErr != nil {
+		http.Error(w, formatErr.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -194,4 +217,15 @@ func firstMount(d DiskInfo) string {
 		}
 	}
 	return ""
+}
+
+func collectMounts(d DiskInfo) []string {
+	mounts := []string{}
+	if d.Mountpoint != "" {
+		mounts = append(mounts, d.Mountpoint)
+	}
+	for _, c := range d.Children {
+		mounts = append(mounts, collectMounts(c)...)
+	}
+	return mounts
 }

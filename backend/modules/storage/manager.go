@@ -122,13 +122,11 @@ func formatDiskIfNeeded(device string) error {
 	if fs != "" {
 		return nil
 	}
-	if out, err := exec.Command("wipefs", "-a", device).CombinedOutput(); err != nil {
-		return fmt.Errorf("wipefs %s: %s %w", device, string(out), err)
-	}
-	if out, err := exec.Command("mkfs.ext4", "-F", device).CombinedOutput(); err != nil {
-		return fmt.Errorf("mkfs.ext4 %s: %s %w", device, string(out), err)
-	}
-	return nil
+	return wipeAndFormatDevice(device)
+}
+
+func forceFormatDisk(device string) error {
+	return wipeAndFormatDevice(device)
 }
 
 func currentFsType(device string) (string, error) {
@@ -142,6 +140,18 @@ func currentFsType(device string) (string, error) {
 func mountExists(target string) bool {
 	out, _ := exec.Command("findmnt", "-n", target).Output()
 	return len(out) > 0
+}
+
+func wipeAndFormatDevice(device string) error {
+	_ = exec.Command("zpool", "labelclear", "-f", device).Run()
+	_ = exec.Command("sgdisk", "--zap-all", device).Run()
+	if out, err := exec.Command("wipefs", "-a", device).CombinedOutput(); err != nil {
+		return fmt.Errorf("wipefs %s: %s %w", device, string(out), err)
+	}
+	if out, err := exec.Command("mkfs.ext4", "-F", device).CombinedOutput(); err != nil {
+		return fmt.Errorf("mkfs.ext4 %s: %s %w", device, string(out), err)
+	}
+	return nil
 }
 
 // RebuildSambaConfig schreibt alle SMB-Shares in /etc/samba/gr3mctrl-shares.conf neu und reloaded smbd.
