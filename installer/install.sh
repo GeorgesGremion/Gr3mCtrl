@@ -4,7 +4,7 @@ set -euo pipefail
 # gr3mctrl Installer (frische Maschine)
 APP_USER="root"
 APP_DIR="/opt/gr3mctrl"
-REPO_URL="https://github.com/GeorgesGremion/LabCore.git"
+REPO_URL="https://github.com/GeorgesGremion/Gr3mCtrl.git"
 REPO_BRANCH="v0.1.0"
 DATA_DIR="/var/lib/gr3mctrl"
 MNT_DIR="/mnt/gr3mctrl"
