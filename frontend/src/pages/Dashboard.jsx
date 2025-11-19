@@ -98,12 +98,12 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="text-white space-y-6 min-h-full">
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="text-white space-y-4 min-h-full">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {heroStats.map((stat) => (
           <div
             key={stat.label}
-            className={`rounded-2xl border border-white/10 p-4 shadow-[0_15px_35px_rgba(2,6,23,0.55)] bg-gradient-to-br ${stat.accent}`}
+            className={`rounded-2xl border border-white/10 p-3 shadow-[0_12px_25px_rgba(2,6,23,0.45)] bg-gradient-to-br ${stat.accent}`}
           >
             <p className="text-sm uppercase tracking-[0.3em] text-white/70">
               {stat.label}
@@ -113,9 +113,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-5 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_15px_35px_rgba(15,23,42,0.35)]">
+        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_12px_25px_rgba(15,23,42,0.35)]">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">CPU Load</h2>
@@ -128,7 +128,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-48">
+          <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cpuHistory}>
                 <XAxis
