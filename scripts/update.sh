@@ -173,10 +173,10 @@ EOF
 
 apply_release_update() {
   local release_json tag remote_commit
-  release_json=$(curl -fsSL -H "Accept: application/vnd.github+json" -H "User-Agent: gr3mctrl-updater" "https://api.github.com/repos/$REPO_SLUG/releases/latest") || {
+  if ! release_json=$(curl -fsSL -H "Accept: application/vnd.github+json" -H "User-Agent: gr3mctrl-updater" "https://api.github.com/repos/$REPO_SLUG/releases/latest"); then
     echo '{"status":"error","message":"Release konnte nicht geladen werden"}'
     return 1
-  }
+  fi
   tag=$(RELEASE_JSON="$release_json" python3 - <<'PY'
 import json, os
 release=json.loads(os.environ["RELEASE_JSON"])
@@ -186,7 +186,7 @@ PY
   if [ -z "$tag" ]; then
     echo '{"status":"error","message":"Keine Release-Version gefunden"}'
     return 1
-  }
+  fi
   git -C "$APP_DIR" fetch --tags origin >/dev/null 2>&1
   remote_commit=$(git -C "$APP_DIR" rev-parse "refs/tags/$tag^{commit}")
 
