@@ -98,24 +98,24 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="text-white space-y-8 min-h-full">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="text-white space-y-6 min-h-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {heroStats.map((stat) => (
           <div
             key={stat.label}
-            className={`rounded-2xl border border-white/10 p-6 shadow-[0_25px_60px_rgba(2,6,23,0.65)] bg-gradient-to-br ${stat.accent}`}
+            className={`rounded-2xl border border-white/10 p-4 shadow-[0_15px_35px_rgba(2,6,23,0.55)] bg-gradient-to-br ${stat.accent}`}
           >
             <p className="text-sm uppercase tracking-[0.3em] text-white/70">
               {stat.label}
             </p>
-            <p className="text-4xl font-semibold mt-4">{stat.value}</p>
+            <p className="text-3xl font-semibold mt-2">{stat.value}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_20px_45px_rgba(15,23,42,0.35)]">
+        <div className="bg-white/5 backdrop-blur-xl p-5 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_15px_35px_rgba(15,23,42,0.35)]">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">CPU Load</h2>
@@ -123,12 +123,12 @@ export default function Dashboard() {
                 {data.cpu_count} Cores · Refresh {refreshInterval / 1000}s
               </p>
             </div>
-            <div className="text-3xl font-bold text-green-400">
+            <div className="text-2xl font-bold text-green-400">
               {data.cpu_load.toFixed(1)}%
             </div>
           </div>
 
-          <div className="h-64">
+          <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cpuHistory}>
                 <XAxis
