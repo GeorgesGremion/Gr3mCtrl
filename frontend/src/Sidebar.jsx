@@ -36,7 +36,7 @@ export default function Sidebar({ current, onChange }) {
 
   return (
     <div className="w-64 bg-gray-800 min-h-screen text-white p-6 border-r border-gray-700 flex flex-col">
-      <h1 className="text-4xl font-bold mb-6 tracking-[0.2em] uppercase">Gr3mCtrl</h1>
+      <h1 className="text-3xl font-bold mb-6 tracking-wide">Gr3mCtrl</h1>
 
       <nav className="flex-1 flex flex-col gap-6">
         {groups.map((group) => (
