@@ -8,10 +8,11 @@ REPO_URL="https://github.com/GeorgesGremion/LabCore.git"
 REPO_BRANCH="v0.1.0"
 DATA_DIR="/var/lib/gr3mctrl"
 MNT_DIR="/mnt/gr3mctrl"
-BACKEND_BIN="/usr/local/bin/gr3mctrl"
+BACKEND_BIN="/usr/local/bin/gr3mctrl-backend"
+GATEWAY_BIN="/usr/local/bin/gr3mctrl-gateway"
 FRONTEND_DIR="$APP_DIR/frontend"
 SERVICE_BACKEND="gr3mctrl-backend.service"
-SERVICE_FRONTEND="gr3mctrl-frontend.service"
+SERVICE_GATEWAY="gr3mctrl-gateway.service"
 
 log(){ echo "[gr3mctrl-installer] $*"; }
 require_root(){ [ "$(id -u)" -eq 0 ] || { log "Bitte als root ausführen."; exit 1; }; }
@@ -57,17 +58,20 @@ create_layout(){
 build_backend(){
   log "Baue Backend..."
   pushd "$APP_DIR/backend" >/dev/null
-  go build -o "$BACKEND_BIN"
+  go build -o "$BACKEND_BIN" ./main.go
   popd >/dev/null
 }
 
-build_frontend(){
-  log "Baue Frontend..."
+build_gateway(){
+  log "Baue Gateway + Frontend..."
   pushd "$APP_DIR/frontend" >/dev/null
   npm install
   npm run build
   mkdir -p "$FRONTEND_DIR/dist"
   rsync -a dist/ "$FRONTEND_DIR/dist/"
+  popd >/dev/null
+  pushd "$APP_DIR/backend" >/dev/null
+  go build -o "$GATEWAY_BIN" ./cmd/gateway/main.go
   popd >/dev/null
 }
 
@@ -84,23 +88,28 @@ User=$APP_USER
 WorkingDirectory=$APP_DIR/backend
 ExecStartPre=/usr/bin/env bash -lc 'cd $APP_DIR/backend && go build -o $BACKEND_BIN ./main.go'
 ExecStart=$BACKEND_BIN
+Environment=GR3MCTRL_BACKEND_ADDR=127.0.0.1:8080
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF2
 
-  cat > /etc/systemd/system/$SERVICE_FRONTEND <<EOF3
+  cat > /etc/systemd/system/$SERVICE_GATEWAY <<EOF3
 [Unit]
-Description=gr3mctrl Frontend Service (static serve)
-After=network.target
+Description=gr3mctrl Gateway Service (Frontend + Reverse Proxy)
+After=network.target $SERVICE_BACKEND
 
 [Service]
 Type=simple
 User=$APP_USER
-WorkingDirectory=$FRONTEND_DIR
+Environment=GR3MCTRL_BACKEND_URL=http://127.0.0.1:8080
+Environment=GR3MCTRL_FRONTEND_DIST=$FRONTEND_DIR/dist
+Environment=GR3MCTRL_GATEWAY_ADDR=:4173
+WorkingDirectory=$APP_DIR
 ExecStartPre=/usr/bin/env bash -lc 'cd $FRONTEND_DIR && npm install && npm run build'
-ExecStart=/usr/bin/env bash -lc 'cd $FRONTEND_DIR && npm run preview -- --host 0.0.0.0 --port 4173'
+ExecStartPre=/usr/bin/env bash -lc 'cd $APP_DIR/backend && go build -o $GATEWAY_BIN ./cmd/gateway/main.go'
+ExecStart=$GATEWAY_BIN
 Restart=always
 
 [Install]
@@ -119,7 +128,7 @@ reload_enable(){
   log "Aktiviere Dienste..."
   systemctl daemon-reload
   systemctl enable --now $SERVICE_BACKEND
-  systemctl enable --now $SERVICE_FRONTEND
+  systemctl enable --now $SERVICE_GATEWAY
 }
 
 main(){
@@ -128,11 +137,11 @@ main(){
   clone_repo
   create_layout
   build_backend
-  build_frontend
+  build_gateway
   write_services
   setup_samba_include
   reload_enable
-  log "Fertig. Backend auf Port 8080, Frontend auf 4173."
+  log "Fertig. Backend lauscht intern auf 127.0.0.1:8080, Gateway öffentlich auf Port 4173."
 }
 
 main "$@"

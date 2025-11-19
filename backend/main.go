@@ -4,17 +4,19 @@ import (
 	"gr3mctrl/api"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
-
-	// API-Routen registrieren
 	api.RegisterRoutes()
 
-	log.Println("gr3mctrl Backend läuft auf Port 8080...")
-	err := http.ListenAndServe(":8080", nil)
+	addr := os.Getenv("GR3MCTRL_BACKEND_ADDR")
+	if addr == "" {
+		addr = "127.0.0.1:8080"
+	}
 
-	if err != nil {
+	log.Printf("gr3mctrl Backend lauscht auf %s (nur lokal erreichbar)\n", addr)
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal(err)
 	}
 }
