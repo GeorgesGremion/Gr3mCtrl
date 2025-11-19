@@ -1,0 +1,76 @@
+name: Gr3mCtrl CI
+
+on:
+  push:
+    branches:
+      - main
+      - v0.1.0
+  pull_request:
+    branches:
+      - main
+      - v0.1.0
+
+jobs:
+  backend:
+    name: Backend (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Go Fmt
+        run: |
+          cd backend
+          test -z "$(gofmt -l .)" || { echo "gofmt found issues"; gofmt -d .; exit 1; }
+
+      - name: Go Vet
+        run: |
+          cd backend
+          go vet ./...
+
+      - name: Go Test
+        run: |
+          cd backend
+          go test ./...
+
+  frontend:
+    name: Frontend (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build
+        run: |
+          cd frontend
+          npm run build
+
+  installer:
+    name: Installer Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Shellcheck installer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck installer/install.sh
