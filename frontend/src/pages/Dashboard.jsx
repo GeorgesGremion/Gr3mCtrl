@@ -99,11 +99,11 @@ export default function Dashboard() {
 
   return (
     <div className="text-white space-y-4 min-h-full">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 auto-rows-[110px]">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {heroStats.map((stat) => (
           <div
             key={stat.label}
-            className={`rounded-2xl border border-white/10 p-3 shadow-[0_12px_25px_rgba(2,6,23,0.45)] bg-gradient-to-br ${stat.accent} flex flex-col justify-between`}
+            className={`rounded-2xl border border-white/10 p-3 shadow-[0_12px_25px_rgba(2,6,23,0.45)] bg-gradient-to-br ${stat.accent} flex flex-col justify-between h-[110px]`}
           >
             <p className="text-sm uppercase tracking-[0.3em] text-white/70">
               {stat.label}
