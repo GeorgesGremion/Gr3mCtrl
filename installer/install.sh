@@ -29,6 +29,11 @@ CURRENT_STEP_NAME="Starte Installer..."
 CURRENT_FRAME=0
 STEP_STATUS="läuft"
 ANIMATION_PID=""
+USE_UI=0
+
+if [ -t 1 ] && command -v tput >/dev/null 2>&1; then
+  USE_UI=1
+fi
 
 FRAMES=(
 '      •
@@ -62,6 +67,7 @@ log(){
 }
 
 render_ui(){
+  [ "$USE_UI" -eq 1 ] || return
   local frame="${FRAMES[$CURRENT_FRAME]}"
   local bar_width=40
   local percent=$((PROGRESS_STEP * 100 / TOTAL_STEPS))
@@ -86,6 +92,7 @@ render_ui(){
 }
 
 animate_ui(){
+  [ "$USE_UI" -eq 1 ] || return
   tput civis >/dev/null 2>&1 || true
   while true; do
     render_ui
@@ -95,9 +102,11 @@ animate_ui(){
 }
 
 start_animation(){
-  render_ui
-  animate_ui &
-  ANIMATION_PID=$!
+  if [ "$USE_UI" -eq 1 ]; then
+    render_ui
+    animate_ui &
+    ANIMATION_PID=$!
+  fi
 }
 
 stop_animation(){
@@ -106,14 +115,19 @@ stop_animation(){
     wait "$ANIMATION_PID" 2>/dev/null || true
     ANIMATION_PID=""
   fi
-  tput cnorm >/dev/null 2>&1 || true
-  render_ui
+  if [ "$USE_UI" -eq 1 ]; then
+    tput cnorm >/dev/null 2>&1 || true
+    render_ui
+  fi
 }
 
 run_step(){
   local label="$1"; shift
   CURRENT_STEP_NAME="$label"
   STEP_STATUS="läuft"
+  if [ "$USE_UI" -ne 1 ]; then
+    echo "[gr3mctrl-installer] $label..."
+  fi
   render_ui
   set +e
   "$@" >>"$LOG_FILE" 2>&1
@@ -278,8 +292,10 @@ reload_enable(){
 
 main(){
   require_root
-  start_animation
-  trap stop_animation EXIT
+  if [ "$USE_UI" -eq 1 ]; then
+    start_animation
+    trap stop_animation EXIT
+  fi
   run_step "Pakete installieren" install_prereqs
   run_step "Repository klonen" clone_repo
   run_step "Verzeichnisse anlegen" create_layout
@@ -291,10 +307,12 @@ main(){
   run_step "systemd Units schreiben" write_services
   run_step "Samba konfigurieren" setup_samba_include
   run_step "Dienste aktivieren" reload_enable
-  STEP_STATUS="Fertig"
-  PROGRESS_STEP=$TOTAL_STEPS
-  render_ui
-  stop_animation
+  if [ "$USE_UI" -eq 1 ]; then
+    STEP_STATUS="Fertig"
+    PROGRESS_STEP=$TOTAL_STEPS
+    render_ui
+    stop_animation
+  fi
   printf "\n✅ Installation abgeschlossen! UI: http://<host>:4173\n"
   printf "   Details im Log: %s\n" "$LOG_FILE"
 }
