@@ -24,7 +24,7 @@ install_prereqs(){
     ca-certificates curl git \
     qemu-system-x86 libvirt-daemon-system libvirt-clients libvirt-dev \
     zfsutils-linux samba nfs-kernel-server \
-    nodejs npm golang pkg-config build-essential rsync
+    golang pkg-config build-essential rsync software-properties-common
 
   # Docker aus dem offiziellen Repo inkl. compose v2 Plugin
   apt-get remove -y docker docker.io docker-doc docker-compose podman-docker containerd runc || true
@@ -35,6 +35,10 @@ install_prereqs(){
   apt-get update -y
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
     docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # Node.js 22 LTS aus dem offiziellen NodeSource Repo
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 }
 
 clone_repo(){
