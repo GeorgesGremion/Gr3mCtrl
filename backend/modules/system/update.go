@@ -21,16 +21,15 @@ func CheckUpdate(w http.ResponseWriter, r *http.Request) {
 
 func ApplyUpdate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	cmd := exec.Command(updateScript, "apply")
+	cmd := exec.Command("systemd-run", "--unit", "gr3mctrl-update", "--same-dir", "--quiet", updateScript, "apply")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
+	if err := cmd.Run(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	go cmd.Wait()
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":  "started",
-		"message": "Update gestartet – bitte kurz warten und anschließend erneut prüfen.",
+		"message": "Update wird im Hintergrund ausgeführt – bitte kurz warten und anschließend erneut prüfen.",
 	})
 }
