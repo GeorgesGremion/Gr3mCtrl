@@ -1,7 +1,9 @@
 package system
 
 import (
+	"encoding/json"
 	"net/http"
+	"os"
 	"os/exec"
 )
 
@@ -19,10 +21,16 @@ func CheckUpdate(w http.ResponseWriter, r *http.Request) {
 
 func ApplyUpdate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	out, err := exec.Command(updateScript, "apply").CombinedOutput()
-	if err != nil {
-		http.Error(w, string(out), http.StatusInternalServerError)
+	cmd := exec.Command(updateScript, "apply")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(out)
+	go cmd.Wait()
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "started",
+		"message": "Update gestartet – bitte kurz warten und anschließend erneut prüfen.",
+	})
 }

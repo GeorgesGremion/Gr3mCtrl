@@ -3,7 +3,7 @@ import { apiGet, apiPost } from "./api";
 import ContainerStats from "./ContainerStats";
 import Sidebar from "./Sidebar";
 import Dashboard from "./pages/Dashboard";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Images from "./pages/Images";
 import SystemInfo from "./pages/SystemInfo";
 import Networks from "./pages/Networks";
@@ -18,6 +18,9 @@ import NasUsers from "./pages/NasUsers";
 
 export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
+  useEffect(() => {
+    document.title = "Gr3mCtrl";
+  }, []);
   const placeholderPages = useMemo(() => ["settings"], []);
   const pageMeta = useMemo(
     () => ({
