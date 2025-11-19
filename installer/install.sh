@@ -291,6 +291,8 @@ reload_enable(){
 
 main(){
   require_root
+  echo "== Gr3mCtrl Installation ==" 
+  echo "Logfile: $LOG_FILE"
   if [ "$USE_UI" -eq 1 ]; then
     start_animation
     trap stop_animation EXIT
