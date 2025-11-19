@@ -15,135 +15,8 @@ FRONTEND_DIR="$APP_DIR/frontend"
 SERVICE_BACKEND="gr3mctrl-backend.service"
 SERVICE_GATEWAY="gr3mctrl-gateway.service"
 
-require_root(){
-  if [ "$(id -u)" -ne 0 ]; then
-    echo "Bitte als root ausführen."
-    exit 1
-  fi
-}
-
-LOG_FILE="/var/log/gr3mctrl-install.log"
-TOTAL_STEPS=11
-PROGRESS_STEP=0
-CURRENT_STEP_NAME="Starte Installer..."
-CURRENT_FRAME=0
-STEP_STATUS="läuft"
-ANIMATION_PID=""
-USE_UI=0
-if [ -t 0 ] && [ -t 1 ] && command -v tput >/dev/null 2>&1; then
-  USE_UI=1
-fi
-
-FRAMES=(
-'      •
-     / \
-    •---•'
-'•---•    
- \        
-  \       
-   •      '
-'    •---•
-     \ /
-      • '
-'   •    
-  /      
- /       
- •---•   ')
-
-read -r -d '' BANNER <<'EOF' || true
-   ____                 __  __      _____      _ 
-  / ___|_ __ ___  ___  |  \ /  | ___|_   _|   _| |
- | |  _| '__/ _ \ _ \ | |\/| |/ _ \ | || | | | |
- | |_| | | |  __/  __/ | |  | |  __/ | || |_| | |
-  \____|_|  \___|\___| |_|  |_|\___| |_| \__,_|_|
-EOF
-
-mkdir -p "$(dirname "$LOG_FILE")"
-: > "$LOG_FILE"
-
-log(){
-  echo "[$(date -Iseconds)] $*" >> "$LOG_FILE"
-}
-
-render_ui(){
-  [ "$USE_UI" -eq 1 ] || return
-  local frame="${FRAMES[$CURRENT_FRAME]}"
-  local bar_width=40
-  local percent=$((PROGRESS_STEP * 100 / TOTAL_STEPS))
-  local filled=$((PROGRESS_STEP * bar_width / TOTAL_STEPS))
-  local bar=""
-  local i
-  for ((i=0;i<bar_width;i++)); do
-    if [ $i -lt $filled ]; then
-      bar+="#"
-    else
-      bar+="."
-    fi
-  done
-  printf '\033[H\033[2J'
-  printf "%s\n\n" "$BANNER"
-  printf "%s\n\n" "$frame"
-  printf " Schritt %2d/%2d: %s\n" "$((PROGRESS_STEP < TOTAL_STEPS ? PROGRESS_STEP + 1 : TOTAL_STEPS))" "$TOTAL_STEPS" "$CURRENT_STEP_NAME"
-  printf " Status : %s\n" "$STEP_STATUS"
-  printf " Log    : %s\n\n" "$LOG_FILE"
-  printf " [%s] %3d%%\n" "$bar" "$percent"
-  printf "\n  Installer läuft ... bitte warten.\n"
-}
-
-animate_ui(){
-  [ "$USE_UI" -eq 1 ] || return
-  tput civis >/dev/null 2>&1 || true
-  while true; do
-    render_ui
-    CURRENT_FRAME=$(( (CURRENT_FRAME + 1) % ${#FRAMES[@]} ))
-    sleep 0.2
-  done
-}
-
-start_animation(){
-  if [ "$USE_UI" -eq 1 ]; then
-    render_ui
-    animate_ui &
-    ANIMATION_PID=$!
-  fi
-}
-
-stop_animation(){
-  if [ -n "$ANIMATION_PID" ]; then
-    kill "$ANIMATION_PID" >/dev/null 2>&1 || true
-    wait "$ANIMATION_PID" 2>/dev/null || true
-    ANIMATION_PID=""
-  fi
-  if [ "$USE_UI" -eq 1 ]; then
-    tput cnorm >/dev/null 2>&1 || true
-    render_ui
-  fi
-}
-
-run_step(){
-  local label="$1"; shift
-  CURRENT_STEP_NAME="$label"
-  STEP_STATUS="läuft"
-  if [ "$USE_UI" -ne 1 ]; then
-    echo "[gr3mctrl-installer] $label..."
-  fi
-  render_ui
-  set +e
-  "$@" >>"$LOG_FILE" 2>&1
-  local rc=$?
-  set -e
-  if [ $rc -ne 0 ]; then
-    STEP_STATUS="Fehler"
-    render_ui
-    stop_animation
-    echo -e "\n[!] Fehler bei Schritt: $label"
-    echo "    Details siehe $LOG_FILE"
-    exit 1
-  fi
-  PROGRESS_STEP=$((PROGRESS_STEP + 1))
-  STEP_STATUS="ok"
-  render_ui
-}
+log(){ echo "[gr3mctrl-installer] $*"; }
+require_root(){ [ "$(id -u)" -eq 0 ] || { log "Bitte als root ausführen."; exit 1; }; }
 
 install_prereqs(){
   log "Installiere Prereqs..."
@@ -291,31 +164,18 @@ reload_enable(){
 
 main(){
   require_root
-  echo "== Gr3mCtrl Installation ==" 
-  echo "Logfile: $LOG_FILE"
-  if [ "$USE_UI" -eq 1 ]; then
-    start_animation
-    trap stop_animation EXIT
-  fi
-  run_step "Pakete installieren" install_prereqs
-  run_step "Repository klonen" clone_repo
-  run_step "Verzeichnisse anlegen" create_layout
-  run_step "Metadaten schreiben" write_metadata "release"
-  run_step "Backend bauen" build_backend
-  run_step "Gateway/Frontend bauen" build_gateway
-  run_step "Hilfsskripte installieren" install_scripts
-  run_step "Metadaten aktualisieren" write_metadata "release"
-  run_step "systemd Units schreiben" write_services
-  run_step "Samba konfigurieren" setup_samba_include
-  run_step "Dienste aktivieren" reload_enable
-  if [ "$USE_UI" -eq 1 ]; then
-    STEP_STATUS="Fertig"
-    PROGRESS_STEP=$TOTAL_STEPS
-    render_ui
-    stop_animation
-  fi
-  printf "\n✅ Installation abgeschlossen! UI: http://<host>:4173\n"
-  printf "   Details im Log: %s\n" "$LOG_FILE"
+  install_prereqs
+  clone_repo
+  create_layout
+  write_metadata "release"
+  build_backend
+  build_gateway
+  install_scripts
+  write_metadata "release"
+  write_services
+  setup_samba_include
+  reload_enable
+  log "Fertig. Backend lauscht intern auf 127.0.0.1:8080, Gateway öffentlich auf Port 4173."
 }
 
 main "$@"
