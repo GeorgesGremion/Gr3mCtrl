@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const stackBaseDirDefault = "/var/lib/c0r3nex/stacks"
+const stackBaseDirDefault = "/var/lib/gr3mctrl/stacks"
 
 type StackInfo struct {
 	Name     string `json:"name"`
@@ -39,7 +39,7 @@ type StackDetail struct {
 func ensureBaseDir(pool string) (string, error) {
 	base := stackBaseDirDefault
 	if pool != "" {
-		base = filepath.Join("/mnt/c0r3nex/pools", pool, "docker")
+		base = filepath.Join("/mnt/gr3mctrl/pools", pool, "docker")
 	}
 	if err := os.MkdirAll(base, 0o755); err != nil {
 		return "", err
@@ -48,7 +48,7 @@ func ensureBaseDir(pool string) (string, error) {
 }
 
 func poolList() []string {
-	data, err := os.ReadFile("/var/lib/c0r3nex/pools.json")
+	data, err := os.ReadFile("/var/lib/gr3mctrl/pools.json")
 	if err != nil || len(data) == 0 {
 		return nil
 	}
@@ -476,9 +476,9 @@ func psStatus(composePath string) (string, int) {
 	}
 }
 
-// derive pool name from base path (/mnt/c0r3nex/pools/<pool>/docker or default)
+// derive pool name from base path (/mnt/gr3mctrl/pools/<pool>/docker or default)
 func poolFromPath(base string) string {
-	if strings.HasPrefix(base, "/mnt/c0r3nex/pools/") {
+	if strings.HasPrefix(base, "/mnt/gr3mctrl/pools/") {
 		parts := strings.Split(base, "/")
 		if len(parts) > 4 {
 			return parts[4]

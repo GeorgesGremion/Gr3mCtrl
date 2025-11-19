@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"strings"
 
-	"c0r3nex/modules/compose"
-	"c0r3nex/modules/docker"
-	"c0r3nex/modules/nas"
-	"c0r3nex/modules/settings"
-	"c0r3nex/modules/storage"
-	"c0r3nex/modules/system"
-	"c0r3nex/modules/vm"
+	"gr3mctrl/modules/compose"
+	"gr3mctrl/modules/docker"
+	"gr3mctrl/modules/nas"
+	"gr3mctrl/modules/settings"
+	"gr3mctrl/modules/storage"
+	"gr3mctrl/modules/system"
+	"gr3mctrl/modules/vm"
 )
 
 func RegisterRoutes() {

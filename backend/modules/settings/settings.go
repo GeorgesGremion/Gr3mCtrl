@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-const configPath = "/var/lib/c0r3nex/config.json"
-const defaultDataPath = "/var/lib/c0r3nex/data"
+const configPath = "/var/lib/gr3mctrl/config.json"
+const defaultDataPath = "/var/lib/gr3mctrl/data"
 
 type Config struct {
 	DataPath    string `json:"data_path"`

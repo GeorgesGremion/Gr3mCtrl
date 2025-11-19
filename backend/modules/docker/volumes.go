@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"c0r3nex/modules/settings"
+	"gr3mctrl/modules/settings"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -102,7 +102,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	hostPath := strings.TrimSpace(req.HostPath)
 	if hostPath == "" {
 		if req.Pool != "" {
-			hostPath = filepath.Join("/mnt/c0r3nex/pools", req.Pool, "docker", "volumes", req.Name)
+			hostPath = filepath.Join("/mnt/gr3mctrl/pools", req.Pool, "docker", "volumes", req.Name)
 		} else {
 			hostPath = filepath.Join(cfg.DataPath, "volumes", req.Name)
 		}
@@ -117,7 +117,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 			"device": hostPath,
 		},
 		Labels: map[string]string{
-			"managed-by": "c0r3nex",
+			"managed-by": "gr3mctrl",
 		},
 	}
 

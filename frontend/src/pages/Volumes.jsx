@@ -15,7 +15,7 @@ export default function Volumes() {
     refetchInterval: 8000,
   });
 
-  const basePath = settings?.data_path || "/var/lib/c0r3nex/data";
+  const basePath = settings?.data_path || "/var/lib/gr3mctrl/data";
 
   const [name, setName] = useState("app-data");
   const [hostPath, setHostPath] = useState("");

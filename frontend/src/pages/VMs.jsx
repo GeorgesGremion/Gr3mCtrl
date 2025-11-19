@@ -8,7 +8,7 @@ export default function VMs() {
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
-    name: "c0r3nex-vm",
+    name: "gr3mctrl-vm",
     memory_mb: 2048,
     vcpus: 2,
     disk_gb: 20,
@@ -295,7 +295,7 @@ export default function VMs() {
               onChange={(e) => setForm({ ...form, pool: e.target.value })}
               className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2"
             >
-              <option value="">Default (/var/lib/c0r3nex/data)</option>
+              <option value="">Default (/var/lib/gr3mctrl/data)</option>
               {pools?.map((p) => (
                 <option key={p.name} value={p.name}>
                   {p.name} (usable {(p.usable / (1024 ** 3)).toFixed(1)} GB)

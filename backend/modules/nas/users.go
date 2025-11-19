@@ -26,7 +26,7 @@ type userState struct {
 	Users []NASUser `json:"users"`
 }
 
-const userFile = "/var/lib/c0r3nex/nas_users.json"
+const userFile = "/var/lib/gr3mctrl/nas_users.json"
 
 func loadUsers() (userState, error) {
 	st := userState{}

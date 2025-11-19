@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# C0R3NEX Installer (frische Maschine)
+# gr3mctrl Installer (frische Maschine)
 APP_USER="root"
-APP_DIR="/opt/c0r3nex"
+APP_DIR="/opt/gr3mctrl"
 REPO_URL="https://github.com/GeorgesGremion/LabCore.git"
 REPO_BRANCH="v0.1.0"
-DATA_DIR="/var/lib/c0r3nex"
-MNT_DIR="/mnt/c0r3nex"
-BACKEND_BIN="$APP_DIR/backend/c0r3nex"
+DATA_DIR="/var/lib/gr3mctrl"
+MNT_DIR="/mnt/gr3mctrl"
+BACKEND_BIN="$APP_DIR/backend/gr3mctrl"
 FRONTEND_DIR="$APP_DIR/frontend"
-SERVICE_BACKEND="c0r3nex-backend.service"
-SERVICE_FRONTEND="c0r3nex-frontend.service"
+SERVICE_BACKEND="gr3mctrl-backend.service"
+SERVICE_FRONTEND="gr3mctrl-frontend.service"
 
-log(){ echo "[c0r3nex-installer] $*"; }
+log(){ echo "[gr3mctrl-installer] $*"; }
 require_root(){ [ "$(id -u)" -eq 0 ] || { log "Bitte als root ausführen."; exit 1; }; }
 
 install_prereqs(){
@@ -75,7 +75,7 @@ write_services(){
   log "Schreibe systemd Units..."
   cat > /etc/systemd/system/$SERVICE_BACKEND <<EOF2
 [Unit]
-Description=C0R3NEX Backend Service
+Description=gr3mctrl Backend Service
 After=network.target docker.service
 
 [Service]
@@ -91,7 +91,7 @@ EOF2
 
   cat > /etc/systemd/system/$SERVICE_FRONTEND <<EOF3
 [Unit]
-Description=C0R3NEX Frontend Service (static serve)
+Description=gr3mctrl Frontend Service (static serve)
 After=network.target
 
 [Service]
@@ -107,9 +107,9 @@ EOF3
 }
 
 setup_samba_include(){
-  local include="/etc/samba/c0r3nex-shares.conf"
-  [ -f "$include" ] || echo "# C0R3NEX SMB Shares" > "$include"
-  grep -q "c0r3nex-shares.conf" /etc/samba/smb.conf || echo "include = $include" >> /etc/samba/smb.conf
+  local include="/etc/samba/gr3mctrl-shares.conf"
+  [ -f "$include" ] || echo "# gr3mctrl SMB Shares" > "$include"
+  grep -q "gr3mctrl-shares.conf" /etc/samba/smb.conf || echo "include = $include" >> /etc/samba/smb.conf
   systemctl reload smbd || true
 }
 

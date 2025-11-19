@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"c0r3nex/modules/settings"
-	"c0r3nex/modules/storage"
 	"github.com/gorilla/websocket"
+	"gr3mctrl/modules/settings"
+	"gr3mctrl/modules/storage"
 	"libvirt.org/go/libvirt"
 )
 
@@ -199,7 +199,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request) {
 	vmDir := filepath.Join(cfg.DataPath, "vm", req.Name)
 	if req.Pool != "" {
 		// store disks on pool vm dataset
-		vmDir = filepath.Join("/mnt/c0r3nex/pools", req.Pool, "vm", req.Name)
+		vmDir = filepath.Join("/mnt/gr3mctrl/pools", req.Pool, "vm", req.Name)
 	}
 	diskPath := filepath.Join(vmDir, req.Name+".qcow2")
 	if err := os.MkdirAll(vmDir, 0o755); err != nil {

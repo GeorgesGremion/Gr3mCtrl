@@ -1,4 +1,4 @@
-module c0r3nex
+module gr3mctrl
 
 go 1.24.0
 
