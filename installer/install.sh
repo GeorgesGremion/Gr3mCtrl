@@ -8,6 +8,7 @@ REPO_URL="https://github.com/GeorgesGremion/LabCore.git"
 REPO_BRANCH="v0.1.0"
 DATA_DIR="/var/lib/gr3mctrl"
 MNT_DIR="/mnt/gr3mctrl"
+BIN_DIR="$APP_DIR/bin"
 BACKEND_BIN="/usr/local/bin/gr3mctrl-backend"
 GATEWAY_BIN="/usr/local/bin/gr3mctrl-gateway"
 FRONTEND_DIR="$APP_DIR/frontend"
@@ -56,7 +57,22 @@ clone_repo(){
 
 create_layout(){
   log "Lege Verzeichnisse an..."
-  mkdir -p "$DATA_DIR" "$MNT_DIR"
+  mkdir -p "$DATA_DIR" "$MNT_DIR" "$BIN_DIR"
+}
+
+write_metadata(){
+  log "Schreibe Versionsinformationen..."
+  local branch commit tag
+  branch=$(git -C "$APP_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "$REPO_BRANCH")
+  commit=$(git -C "$APP_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
+  tag=$(git -C "$APP_DIR" describe --tags --abbrev=0 2>/dev/null || echo "$branch")
+  cat > "$APP_DIR/VERSION" <<EOFV
+VERSION=$tag
+BRANCH=$branch
+COMMIT=$commit
+BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+EOFV
+  echo "$branch" > "$APP_DIR/BRANCH"
 }
 
 build_backend(){
@@ -77,6 +93,11 @@ build_gateway(){
   pushd "$APP_DIR/backend" >/dev/null
   go build -o "$GATEWAY_BIN" ./cmd/gateway/main.go
   popd >/dev/null
+}
+
+install_scripts(){
+  log "Installiere Hilfsskripte..."
+  install -m 0755 "$APP_DIR/scripts/update.sh" "$BIN_DIR/update.sh"
 }
 
 write_services(){
@@ -140,8 +161,11 @@ main(){
   install_prereqs
   clone_repo
   create_layout
+  write_metadata
   build_backend
   build_gateway
+  install_scripts
+  write_metadata
   write_services
   setup_samba_include
   reload_enable

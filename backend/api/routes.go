@@ -260,6 +260,16 @@ func RegisterRoutes() {
 
 	// System Info
 	http.HandleFunc("/api/system/info", system.GetSystemInfo)
+	http.HandleFunc("/api/system/update", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			system.CheckUpdate(w, r)
+		case http.MethodPost:
+			system.ApplyUpdate(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	// Settings
 	http.HandleFunc("/api/settings", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {

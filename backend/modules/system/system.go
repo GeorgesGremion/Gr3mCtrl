@@ -36,6 +36,10 @@ type SystemInfo struct {
 	ContainersRunning int     `json:"containers_running"`
 	ContainersStopped int     `json:"containers_stopped"`
 	ImagesTotal       int     `json:"images_total"`
+	Version           string  `json:"version"`
+	Branch            string  `json:"branch"`
+	Commit            string  `json:"commit"`
+	BuildDate         string  `json:"build_date"`
 }
 
 func GetSystemInfo(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +84,8 @@ func GetSystemInfo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	versionInfo := loadVersionInfo()
+
 	info := SystemInfo{
 		Hostname:          host,
 		OS:                runtime.GOOS,
@@ -95,6 +101,10 @@ func GetSystemInfo(w http.ResponseWriter, r *http.Request) {
 		ContainersRunning: running,
 		ContainersStopped: stopped,
 		ImagesTotal:       len(images),
+		Version:           versionInfo.Version,
+		Branch:            versionInfo.Branch,
+		Commit:            versionInfo.Commit,
+		BuildDate:         versionInfo.BuildDate,
 	}
 
 	json.NewEncoder(w).Encode(info)

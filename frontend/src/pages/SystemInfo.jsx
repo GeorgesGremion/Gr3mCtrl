@@ -1,11 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "../api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiPost } from "../api";
 
 export default function SystemInfo() {
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["systemInfo"],
     queryFn: () => apiGet("/api/system/info"),
     refetchInterval: 5000,
+  });
+  const updateInfo = useQuery({
+    queryKey: ["updateStatus"],
+    queryFn: () => apiGet("/api/system/update"),
+    refetchInterval: 60000,
+  });
+
+  const updater = useMutation({
+    mutationFn: () => apiPost("/api/system/update", {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["updateStatus"] });
+      qc.invalidateQueries({ queryKey: ["systemInfo"] });
+    },
   });
 
   if (isLoading)
@@ -25,6 +39,13 @@ export default function SystemInfo() {
           Host-Details und Usage-Balken für CPU, Speicher und Storage.
         </p>
       </div>
+
+      <UpdateCard
+        info={data}
+        update={updateInfo.data}
+        loading={updateInfo.isLoading}
+        updater={updater}
+      />
 
       <InfoCard
         title="CPU"
@@ -94,3 +115,39 @@ const Stat = ({ label, value, accent = "text-white" }) => (
     <p className={`text-2xl font-semibold ${accent}`}>{value}</p>
   </div>
 );
+
+const UpdateCard = ({ info, update, loading, updater }) => {
+  const available = update?.update_available;
+  const currentVersion = info?.version || "unknown";
+  const commitShort = (info?.commit || "").slice(0, 8);
+  const latestShort = (update?.remote_commit || "").slice(0, 8);
+
+  return (
+    <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
+      <h2 className="text-xl font-semibold mb-2">Version</h2>
+      <div className="text-gray-300 text-sm space-y-1">
+        <p>Aktuell: {currentVersion}</p>
+        <p>Branch: {info?.branch}</p>
+        <p>Commit: {commitShort || "-"} {info?.build_date ? `(${info.build_date})` : ""}</p>
+        {available && <p>Remote Commit: {latestShort}</p>}
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        {available ? (
+          <button
+            onClick={() => updater.mutate()}
+            disabled={updater.isPending}
+            className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50"
+          >
+            {updater.isPending ? "Update läuft..." : "Update installieren"}
+          </button>
+        ) : (
+          <span className="text-emerald-400 text-sm">
+            {loading ? "Prüfe Updates..." : "System ist aktuell"}
+          </span>
+        )}
+        {updater.isError && <span className="text-sm text-rose-400">{updater.error?.response?.data || updater.error?.message}</span>}
+        {updater.isSuccess && <span className="text-sm text-emerald-400">Update abgeschlossen</span>}
+      </div>
+    </div>
+  );
+};
