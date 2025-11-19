@@ -65,6 +65,7 @@ create_layout(){
 
 write_metadata(){
   log "Schreibe Versionsinformationen..."
+  local channel="${1:-release}"
   local branch commit tag
   branch=$(git -C "$APP_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "$REPO_BRANCH")
   commit=$(git -C "$APP_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
@@ -73,9 +74,11 @@ write_metadata(){
 VERSION=$tag
 BRANCH=$branch
 COMMIT=$commit
+CHANNEL=$channel
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOFV
   echo "$branch" > "$APP_DIR/BRANCH"
+  echo "$channel" > "$APP_DIR/CHANNEL"
 }
 
 build_backend(){
@@ -164,11 +167,11 @@ main(){
   install_prereqs
   clone_repo
   create_layout
-  write_metadata
+  write_metadata "release"
   build_backend
   build_gateway
   install_scripts
-  write_metadata
+  write_metadata "release"
   write_services
   setup_samba_include
   reload_enable

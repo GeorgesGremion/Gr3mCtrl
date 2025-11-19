@@ -119,8 +119,13 @@ const Stat = ({ label, value, accent = "text-white" }) => (
 const UpdateCard = ({ info, update, loading, updater }) => {
   const available = update?.update_available;
   const currentVersion = info?.version || "unknown";
+  const channel = info?.channel || "branch";
   const commitShort = (info?.commit || "").slice(0, 8);
-  const latestShort = (update?.remote_commit || "").slice(0, 8);
+  const latestVersion = update?.latest_version || "-";
+  const releaseNotes = update?.release_notes;
+  const published = update?.latest_published
+    ? new Date(update.latest_published).toLocaleString()
+    : null;
 
   return (
     <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
@@ -128,8 +133,9 @@ const UpdateCard = ({ info, update, loading, updater }) => {
       <div className="text-gray-300 text-sm space-y-1">
         <p>Aktuell: {currentVersion}</p>
         <p>Branch: {info?.branch}</p>
+        <p>Channel: {channel}</p>
         <p>Commit: {commitShort || "-"} {info?.build_date ? `(${info.build_date})` : ""}</p>
-        {available && <p>Remote Commit: {latestShort}</p>}
+        {published && <p>Release: {latestVersion} · {published}</p>}
       </div>
       <div className="mt-4 flex items-center gap-3">
         {available ? (
@@ -148,6 +154,11 @@ const UpdateCard = ({ info, update, loading, updater }) => {
         {updater.isError && <span className="text-sm text-rose-400">{updater.error?.response?.data || updater.error?.message}</span>}
         {updater.isSuccess && <span className="text-sm text-emerald-400">Update abgeschlossen</span>}
       </div>
+      {releaseNotes && (
+        <div className="mt-4 text-sm text-gray-300 bg-black/20 rounded-lg p-3 whitespace-pre-wrap max-h-40 overflow-y-auto border border-white/5">
+          {releaseNotes}
+        </div>
+      )}
     </div>
   );
 };

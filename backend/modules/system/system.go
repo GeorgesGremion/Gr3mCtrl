@@ -40,6 +40,7 @@ type SystemInfo struct {
 	Branch            string  `json:"branch"`
 	Commit            string  `json:"commit"`
 	BuildDate         string  `json:"build_date"`
+	Channel           string  `json:"channel"`
 }
 
 func GetSystemInfo(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +106,7 @@ func GetSystemInfo(w http.ResponseWriter, r *http.Request) {
 		Branch:            versionInfo.Branch,
 		Commit:            versionInfo.Commit,
 		BuildDate:         versionInfo.BuildDate,
+		Channel:           versionInfo.Channel,
 	}
 
 	json.NewEncoder(w).Encode(info)

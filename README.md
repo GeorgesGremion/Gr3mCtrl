@@ -45,7 +45,7 @@ Nach der Installation erreichst du das UI unter `http://<dein-host>:4173`.
 
 ### Updates
 
-Gr3mCtrl bringt ein CLI-/API-gesteuertes Update-Tool:
+Gr3mCtrl bringt ein CLI-/API-gesteuertes Update-Tool. Standardmäßig laufen Installationen im `release`-Kanal und beziehen Updates aus den GitHub Releases (Tag `vX.Y.Z`). Wer Nightly-Builds testen möchte, kann `/opt/gr3mctrl/CHANNEL` auf `branch` setzen und in `/opt/gr3mctrl/BRANCH` z. B. `main` hinterlegen.
 
 ```bash
 /opt/gr3mctrl/bin/update.sh check   # zeigt verfügbares Update

@@ -16,6 +16,7 @@ type VersionInfo struct {
 	Branch    string `json:"branch"`
 	Commit    string `json:"commit"`
 	BuildDate string `json:"build_date"`
+	Channel   string `json:"channel"`
 }
 
 func loadVersionInfo() VersionInfo {
@@ -24,6 +25,7 @@ func loadVersionInfo() VersionInfo {
 		Branch:    readBranchFile(),
 		Commit:    "unknown",
 		BuildDate: "",
+		Channel:   "branch",
 	}
 
 	file, err := os.Open(versionFilePath)
@@ -46,6 +48,9 @@ func loadVersionInfo() VersionInfo {
 		}
 		if strings.HasPrefix(line, "BUILD_DATE=") {
 			v.BuildDate = strings.TrimSpace(strings.TrimPrefix(line, "BUILD_DATE="))
+		}
+		if strings.HasPrefix(line, "CHANNEL=") {
+			v.Channel = strings.TrimSpace(strings.TrimPrefix(line, "CHANNEL="))
 		}
 	}
 
