@@ -30,8 +30,7 @@ CURRENT_FRAME=0
 STEP_STATUS="läuft"
 ANIMATION_PID=""
 USE_UI=0
-
-if [ -t 1 ] && command -v tput >/dev/null 2>&1; then
+if [ -t 0 ] && [ -t 1 ] && command -v tput >/dev/null 2>&1; then
   USE_UI=1
 fi
 
