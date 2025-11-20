@@ -99,16 +99,16 @@ export default function Dashboard() {
 
   return (
     <div className="text-white space-y-4 min-h-full">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[90px]">
         {heroStats.map((stat) => (
           <div
             key={stat.label}
-            className={`rounded-2xl border border-white/10 p-3 shadow-[0_12px_25px_rgba(2,6,23,0.45)] bg-gradient-to-br ${stat.accent} flex flex-col justify-between h-[110px]`}
+            className={`rounded-2xl border border-white/10 px-3 py-2 shadow-[0_12px_25px_rgba(2,6,23,0.45)] bg-gradient-to-br ${stat.accent} flex flex-col justify-between`}
           >
             <p className="text-sm uppercase tracking-[0.3em] text-white/70">
               {stat.label}
             </p>
-            <p className="text-2xl font-semibold">{stat.value}</p>
+            <p className="text-xl font-semibold">{stat.value}</p>
           </div>
         ))}
       </div>
@@ -128,7 +128,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-48 md:h-40">
+          <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cpuHistory}>
                 <XAxis
@@ -164,7 +164,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
           {/* RAM */}
           <GaugeCard
             title="Memory Usage"
