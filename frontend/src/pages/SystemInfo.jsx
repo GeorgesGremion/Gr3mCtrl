@@ -116,6 +116,8 @@ const Stat = ({ label, value, accent = "text-white" }) => (
   </div>
 );
 
+import { useEffect, useState } from "react";
+
 const UpdateCard = ({ info, update, loading, updater }) => {
   const available = update?.update_available;
   const currentVersion = info?.version || "unknown";
@@ -126,6 +128,15 @@ const UpdateCard = ({ info, update, loading, updater }) => {
   const published = update?.latest_published
     ? new Date(update.latest_published).toLocaleString()
     : null;
+  const [justUpdated, setJustUpdated] = useState(false);
+
+  useEffect(() => {
+    if (updater.isSuccess) {
+      setJustUpdated(true);
+      const t = setTimeout(() => setJustUpdated(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [updater.isSuccess]);
 
   return (
     <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
@@ -144,15 +155,18 @@ const UpdateCard = ({ info, update, loading, updater }) => {
             disabled={updater.isPending}
             className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50"
           >
-            {updater.isPending ? "Update läuft..." : "Update installieren"}
+            {updater.isPending ? "Update wird installiert..." : "Update installieren"}
           </button>
         ) : (
           <span className="text-emerald-400 text-sm">
             {loading ? "Prüfe Updates..." : "System ist aktuell"}
           </span>
         )}
+        {updater.isPending && <span className="text-sm text-slate-300">Update wird installiert...</span>}
         {updater.isError && <span className="text-sm text-rose-400">{updater.error?.response?.data || updater.error?.message}</span>}
-        {updater.isSuccess && <span className="text-sm text-emerald-400">Update abgeschlossen</span>}
+        {justUpdated && !available && !updater.isPending && !updater.isError && (
+          <span className="text-sm text-emerald-400">Update abgeschlossen</span>
+        )}
       </div>
       {releaseNotes && (
         <div className="mt-4 text-sm text-gray-300 bg-black/20 rounded-lg p-3 whitespace-pre-wrap max-h-40 overflow-y-auto border border-white/5">
