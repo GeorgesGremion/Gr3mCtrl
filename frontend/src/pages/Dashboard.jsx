@@ -113,9 +113,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 auto-rows-[320px]">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-[320px]">
+        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-full">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">CPU Load</h2>
@@ -164,7 +164,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3 h-full">
           {/* RAM */}
           <GaugeCard
             title="Memory Usage"
