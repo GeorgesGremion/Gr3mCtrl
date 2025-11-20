@@ -178,6 +178,7 @@ func RegisterRoutes() {
 	// VNC/SPICE Websocket Proxy
 	http.HandleFunc("/ws/vnc/", vm.VNCProxy)
 	http.HandleFunc("/ws/spice/", vm.SPICEProxy)
+	http.HandleFunc("/ws/shell", system.ShellWS)
 
 	// Storage - ISOs
 	http.HandleFunc("/api/storage/isos", func(w http.ResponseWriter, r *http.Request) {

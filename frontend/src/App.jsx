@@ -15,9 +15,11 @@ import VmNetworks from "./pages/VmNetworks";
 import Pools from "./pages/Pools";
 import Shares from "./pages/Shares";
 import NasUsers from "./pages/NasUsers";
+import TerminalModal from "./components/TerminalModal";
 
 export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
+  const [showShell, setShowShell] = useState(false);
   useEffect(() => {
     document.title = "Gr3mCtrl";
   }, []);
@@ -162,6 +164,12 @@ export default function App() {
           </div>
 
           <div className="flex gap-3">
+            <button
+              onClick={() => setShowShell(true)}
+              className="px-4 py-2 rounded-full border border-white/30 text-sm text-white/90 hover:border-white transition"
+            >
+              Shell
+            </button>
             <button className="px-4 py-2 rounded-full border border-white/20 text-sm text-white/80 hover:border-white transition">
               Quick Action
             </button>
@@ -293,6 +301,7 @@ export default function App() {
             )}
           </div>
         </main>
+        <TerminalModal open={showShell} onClose={() => setShowShell(false)} />
       </div>
     </div>
   );
