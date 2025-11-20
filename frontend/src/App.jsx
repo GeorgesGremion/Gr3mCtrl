@@ -84,6 +84,20 @@ export default function App() {
     []
   );
 
+  useEffect(() => {
+    const syncFromHash = () => {
+      const raw = window.location.hash.replace("#/", "").replace("#", "");
+      if (raw && pageMeta[raw]) {
+        setPage(raw);
+      }
+    };
+    syncFromHash();
+    window.addEventListener("hashchange", syncFromHash);
+    return () => window.removeEventListener("hashchange", syncFromHash);
+    // pageMeta stable via useMemo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageMeta]);
+
   const activeMeta =
     pageMeta[page] ?? {
       title: "gr3mctrl Suite",
