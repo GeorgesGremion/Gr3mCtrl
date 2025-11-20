@@ -58,35 +58,22 @@ const PAGE_TO_GROUP = {
 };
 
 export default function Sidebar({ current, onChange }) {
-  const initialOpen = useMemo(() => {
-    const currentGroup = PAGE_TO_GROUP[current];
-    const base = GROUPS.filter((g) => g.alwaysOpen).map((g) => g.id);
-    return currentGroup ? [...base, currentGroup] : base;
-  }, [current]);
-
-  const [openGroups, setOpenGroups] = useState(() => new Set(initialOpen));
+  const initialOpen = useMemo(() => PAGE_TO_GROUP[current] || null, [current]);
+  const [openGroup, setOpenGroup] = useState(initialOpen);
 
   useEffect(() => {
     const currentGroup = PAGE_TO_GROUP[current];
-    if (currentGroup && !openGroups.has(currentGroup)) {
-      setOpenGroups((prev) => new Set([...prev, currentGroup]));
+    if (currentGroup) {
+      setOpenGroup(currentGroup);
     }
-  }, [current, openGroups]);
+  }, [current]);
 
   const toggleGroup = (id, alwaysOpen) => {
     if (alwaysOpen) return;
-    setOpenGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    setOpenGroup((prev) => (prev === id ? null : id));
   };
 
-  const isOpen = (group) => group.alwaysOpen || openGroups.has(group.id);
+  const isOpen = (group) => group.alwaysOpen || openGroup === group.id;
 
   return (
     <div className="w-64 bg-gray-900/90 min-h-screen text-white p-6 border-r border-gray-800 flex flex-col backdrop-blur-xl">
