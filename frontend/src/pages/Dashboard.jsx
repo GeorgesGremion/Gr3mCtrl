@@ -37,6 +37,11 @@ export default function Dashboard() {
     queryFn: () => apiGet("/api/vm/domains"),
     refetchInterval: 12000,
   });
+  const { data: updateInfo } = useQuery({
+    queryKey: ["updateStatus"],
+    queryFn: () => apiGet("/api/system/update"),
+    refetchInterval: 60000,
+  });
 
   useEffect(() => {
     if (!data) return;
@@ -113,10 +118,32 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {updateInfo?.update_available && (
+        <div className="rounded-2xl border border-white/15 bg-gradient-to-r from-amber-500/20 via-purple-600/15 to-blue-500/20 p-4 flex items-center justify-between shadow-[0_15px_35px_rgba(30,41,59,0.35)]">
+          <div>
+            <p className="text-sm text-amber-200 uppercase tracking-[0.18em]">
+              Update verfügbar
+            </p>
+            <p className="text-lg font-semibold">
+              Neu: {updateInfo.latest_version || "-"} · Jetzt installieren bei System Info
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              window.location.hash = "#/system";
+            }}
+            className="px-4 py-2 rounded-xl bg-white/15 border border-white/20 hover:bg-white/25 transition text-sm font-semibold"
+          >
+            Zu System Info
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 items-start">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-[260px] xl:h-[280px] overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_25px_rgba(15,23,42,0.35)] h-[260px] xl:h-[280px] overflow-hidden relative">
+          <div className="absolute inset-0 pointer-events-none opacity-25 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
             <div>
               <h2 className="text-xl font-semibold">CPU Load</h2>
               <p className="text-gray-400 text-sm">
@@ -128,7 +155,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-[180px] xl:h-[200px] pt-1">
+          <div className="h-[180px] xl:h-[200px] pt-1 relative z-10">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cpuHistory}>
                 <XAxis
@@ -173,7 +200,7 @@ export default function Dashboard() {
             total={`${gb(data.ram_total)} GB`}
             gaugeData={gaugeData(ramUsage)}
             accent="from-indigo-500 to-sky-500"
-            height="flex-1 min-h-[120px]"
+            height="flex-1 min-h-[140px]"
           />
 
           {/* Disk */}
@@ -184,7 +211,7 @@ export default function Dashboard() {
             total={`${gb(data.disk_total)} GB`}
             gaugeData={gaugeData(diskUsage)}
             accent="from-amber-500 to-orange-500"
-            height="flex-1 min-h-[120px]"
+            height="flex-1 min-h-[140px]"
           />
         </div>
       </div>
