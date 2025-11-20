@@ -115,7 +115,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 items-start">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-[300px] xl:h-[320px] overflow-hidden">
+        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-[260px] xl:h-[280px] overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">CPU Load</h2>
@@ -128,7 +128,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-[220px] xl:h-[260px] pt-1">
+          <div className="h-[180px] xl:h-[200px] pt-1">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cpuHistory}>
                 <XAxis
@@ -173,7 +173,7 @@ export default function Dashboard() {
             total={`${gb(data.ram_total)} GB`}
             gaugeData={gaugeData(ramUsage)}
             accent="from-indigo-500 to-sky-500"
-            height="h-[150px] xl:h-[170px]"
+            height="h-[140px] xl:h-[150px]"
           />
 
           {/* Disk */}
@@ -184,7 +184,7 @@ export default function Dashboard() {
             total={`${gb(data.disk_total)} GB`}
             gaugeData={gaugeData(diskUsage)}
             accent="from-amber-500 to-orange-500"
-            height="h-[150px] xl:h-[170px]"
+            height="h-[140px] xl:h-[150px]"
           />
         </div>
       </div>
