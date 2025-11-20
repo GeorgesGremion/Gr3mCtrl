@@ -103,7 +103,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="text-white space-y-4 min-h-full">
+    <div className="text-white space-y-4 min-h-full bg-gradient-to-br from-slate-900 via-slate-950 to-black/80">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 auto-rows-[68px]">
         {heroStats.map((stat) => (
           <div
@@ -139,13 +139,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_25px_rgba(15,23,42,0.35)] h-[260px] xl:h-[280px] overflow-hidden relative">
-          <div className="absolute inset-0 pointer-events-none opacity-25 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
-          <div className="flex items-center justify-between mb-4 relative z-10">
+        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_15px_28px_rgba(15,23,42,0.38)] h-[300px] xl:h-[320px] overflow-hidden relative">
+          <div className="absolute inset-0 pointer-events-none opacity-20 bg-gradient-to-br from-emerald-500/15 via-transparent to-cyan-500/15" />
+          <div className="flex items-center justify-between mb-3 relative z-10">
             <div>
-              <h2 className="text-xl font-semibold">CPU Load</h2>
+              <h2 className="text-xl font-semibold tracking-tight">CPU Load</h2>
               <p className="text-gray-400 text-sm">
                 {data.cpu_count} Cores · Refresh {refreshInterval / 1000}s
               </p>
@@ -155,7 +155,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-[180px] xl:h-[200px] pt-1 relative z-10">
+          <div className="h-[210px] xl:h-[230px] pt-1 relative z-10">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cpuHistory}>
                 <XAxis
@@ -191,7 +191,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 h-[260px] xl:h-[280px] w-full">
+        <div className="grid grid-rows-2 gap-3 h-[300px] xl:h-[320px] w-full">
           {/* RAM */}
           <GaugeCard
             title="Memory Usage"
@@ -200,7 +200,7 @@ export default function Dashboard() {
             total={`${gb(data.ram_total)} GB`}
             gaugeData={gaugeData(ramUsage)}
             accent="from-indigo-500 to-sky-500"
-            height="flex-1 min-h-[140px]"
+            height="h-full min-h-[150px]"
           />
 
           {/* Disk */}
@@ -211,14 +211,14 @@ export default function Dashboard() {
             total={`${gb(data.disk_total)} GB`}
             gaugeData={gaugeData(diskUsage)}
             accent="from-amber-500 to-orange-500"
-            height="flex-1 min-h-[140px]"
+            height="h-full min-h-[150px]"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* General Info */}
-        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 xl:col-span-2">
+        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_22px_rgba(15,23,42,0.32)]">
           <h2 className="text-xl font-semibold mb-4">System</h2>
           <ul className="space-y-2 text-gray-300">
             <li>
@@ -236,7 +236,7 @@ export default function Dashboard() {
           </ul>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
+        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-[0_10px_22px_rgba(15,23,42,0.32)]">
           <h2 className="text-xl font-semibold mb-4">Ressourcen</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
             <SummaryBadge label="VMs running" value={vmsRunning} accent="text-emerald-400" />
@@ -261,8 +261,9 @@ export default function Dashboard() {
 
 const GaugeCard = ({ title, percent, used, total, gaugeData, accent, height }) => (
   <div className={`bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 relative overflow-hidden ${height || ""}`}>
+    <div className="absolute inset-0 pointer-events-none opacity-15 bg-gradient-to-br from-white/10 via-transparent to-white/5" />
     <div className="flex items-center justify-between">
-      <h2 className="text-xl font-semibold mb-4">{title}</h2>
+      <h2 className="text-xl font-semibold mb-2">{title}</h2>
       <span
         className={`text-2xl font-bold bg-gradient-to-r ${accent} bg-clip-text text-transparent`}
       >
@@ -270,7 +271,7 @@ const GaugeCard = ({ title, percent, used, total, gaugeData, accent, height }) =
       </span>
     </div>
 
-    <div className="h-48 mt-2">
+    <div className="h-36 mt-1 relative z-10">
       <ResponsiveContainer width="100%" height="100%">
         <RadialBarChart
           data={gaugeData}
