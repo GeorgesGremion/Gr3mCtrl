@@ -283,8 +283,16 @@ const Field = ({ label, children }) => (
   </div>
 );
 
+const hasRootMount = (d) => {
+  if (!d) return false;
+  if (d.mountpoint === "/") return true;
+  return Array.isArray(d.children) && d.children.some((c) => hasRootMount(c));
+};
+
 const DiskRow = ({ disk, level, onFormat, formatPending, formattingDevice }) => {
   const indent = level * 16;
+  const rootMounted = hasRootMount(disk);
+  const canFormat = disk.type === "disk" && !disk.mountpoint && !rootMounted;
   return (
     <>
       <tr className={`border-t border-white/10 ${disk.mountpoint ? "text-yellow-300" : ""}`}>
@@ -296,7 +304,7 @@ const DiskRow = ({ disk, level, onFormat, formatPending, formattingDevice }) => 
         <td className="py-2">{disk.model || "-"}</td>
         <td className="py-2">{disk.type}</td>
         <td className="py-2 text-right">
-          {!disk.mountpoint && disk.type === "disk" && (
+          {canFormat && (
             <button
               onClick={() => onFormat && onFormat(`/dev/${disk.name}`)}
               disabled={formatPending}

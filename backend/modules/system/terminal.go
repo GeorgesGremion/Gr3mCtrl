@@ -3,6 +3,7 @@ package system
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -25,6 +26,11 @@ var shellUpgrader = websocket.Upgrader{
 // ShellWS exposes a PTY-backed shell over WebSocket.
 // Only expose this behind trusted auth and localhost gateway.
 func ShellWS(w http.ResponseWriter, r *http.Request) {
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if ip := net.ParseIP(host); ip != nil && !ip.IsLoopback() {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
 	conn, err := shellUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("shell upgrade error: %v", err)
