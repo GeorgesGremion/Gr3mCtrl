@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/creack/pty"
@@ -30,6 +31,13 @@ func ShellWS(w http.ResponseWriter, r *http.Request) {
 	if ip := net.ParseIP(host); ip != nil && !ip.IsLoopback() {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
+	}
+	secret := strings.TrimSpace(os.Getenv("GR3MCTRL_SHELL_SECRET"))
+	if secret != "" {
+		if hdr := r.Header.Get("X-Gr3mctrl-Shell-Secret"); hdr != secret {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
 	}
 	conn, err := shellUpgrader.Upgrade(w, r, nil)
 	if err != nil {
