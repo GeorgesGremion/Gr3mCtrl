@@ -115,7 +115,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 items-start">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-[320px] xl:h-[360px]">
+        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-[320px] xl:h-[360px] overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">CPU Load</h2>
@@ -128,7 +128,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-full">
+          <div className="h-[240px] xl:h-[300px] pt-1">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cpuHistory}>
                 <XAxis
