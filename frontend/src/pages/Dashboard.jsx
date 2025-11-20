@@ -98,8 +98,8 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="text-white space-y-3 min-h-full">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 auto-rows-[72px]">
+    <div className="text-white space-y-4 min-h-full">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 auto-rows-[68px]">
         {heroStats.map((stat) => (
           <div
             key={stat.label}
@@ -113,9 +113,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 auto-rows-[320px]">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 items-start">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-full">
+        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)] h-[320px] xl:h-[360px]">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">CPU Load</h2>
@@ -164,7 +164,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3 h-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3 w-full">
           {/* RAM */}
           <GaugeCard
             title="Memory Usage"
@@ -173,7 +173,7 @@ export default function Dashboard() {
             total={`${gb(data.ram_total)} GB`}
             gaugeData={gaugeData(ramUsage)}
             accent="from-indigo-500 to-sky-500"
-            height="h-[320px]"
+            height="h-[170px] xl:h-[190px]"
           />
 
           {/* Disk */}
@@ -184,14 +184,14 @@ export default function Dashboard() {
             total={`${gb(data.disk_total)} GB`}
             gaugeData={gaugeData(diskUsage)}
             accent="from-amber-500 to-orange-500"
-            height="h-[320px]"
+            height="h-[170px] xl:h-[190px]"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
         {/* General Info */}
-        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
+        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 xl:col-span-2">
           <h2 className="text-xl font-semibold mb-4">System</h2>
           <ul className="space-y-2 text-gray-300">
             <li>
