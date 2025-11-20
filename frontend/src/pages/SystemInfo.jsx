@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "../api";
 
@@ -116,8 +117,6 @@ const Stat = ({ label, value, accent = "text-white" }) => (
   </div>
 );
 
-import { useEffect, useState } from "react";
-
 const UpdateCard = ({ info, update, loading, updater }) => {
   const available = update?.update_available;
   const currentVersion = info?.version || "unknown";
@@ -131,12 +130,19 @@ const UpdateCard = ({ info, update, loading, updater }) => {
   const [justUpdated, setJustUpdated] = useState(false);
 
   useEffect(() => {
+    if (updater.isPending) {
+      setJustUpdated(false);
+      return;
+    }
     if (updater.isSuccess) {
       setJustUpdated(true);
-      const t = setTimeout(() => setJustUpdated(false), 4000);
+      const t = setTimeout(() => {
+        setJustUpdated(false);
+        updater.reset();
+      }, 4000);
       return () => clearTimeout(t);
     }
-  }, [updater.isSuccess]);
+  }, [updater]);
 
   return (
     <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
@@ -163,7 +169,11 @@ const UpdateCard = ({ info, update, loading, updater }) => {
           </span>
         )}
         {updater.isPending && <span className="text-sm text-slate-300">Update wird installiert...</span>}
-        {updater.isError && <span className="text-sm text-rose-400">{updater.error?.response?.data || updater.error?.message}</span>}
+        {updater.isError && (
+          <span className="text-sm text-rose-400">
+            {updater.error?.response?.data || updater.error?.message}
+          </span>
+        )}
         {justUpdated && !available && !updater.isPending && !updater.isError && (
           <span className="text-sm text-emerald-400">Update abgeschlossen</span>
         )}
