@@ -164,7 +164,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3 w-full">
+        <div className="flex flex-col gap-3 h-[260px] xl:h-[280px] w-full">
           {/* RAM */}
           <GaugeCard
             title="Memory Usage"
@@ -173,7 +173,7 @@ export default function Dashboard() {
             total={`${gb(data.ram_total)} GB`}
             gaugeData={gaugeData(ramUsage)}
             accent="from-indigo-500 to-sky-500"
-            height="h-[140px] xl:h-[150px]"
+            height="flex-1 min-h-[120px]"
           />
 
           {/* Disk */}
@@ -184,7 +184,7 @@ export default function Dashboard() {
             total={`${gb(data.disk_total)} GB`}
             gaugeData={gaugeData(diskUsage)}
             accent="from-amber-500 to-orange-500"
-            height="h-[140px] xl:h-[150px]"
+            height="flex-1 min-h-[120px]"
           />
         </div>
       </div>
