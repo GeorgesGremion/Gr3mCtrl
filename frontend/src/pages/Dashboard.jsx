@@ -98,24 +98,24 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="text-white space-y-4 min-h-full">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[90px]">
+    <div className="text-white space-y-3 min-h-full">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 auto-rows-[80px]">
         {heroStats.map((stat) => (
           <div
             key={stat.label}
-            className={`rounded-2xl border border-white/10 px-3 py-2 shadow-[0_12px_25px_rgba(2,6,23,0.45)] bg-gradient-to-br ${stat.accent} flex flex-col justify-between`}
+            className={`rounded-2xl border border-white/10 px-3 py-2 shadow-[0_10px_18px_rgba(2,6,23,0.35)] bg-gradient-to-br ${stat.accent} flex flex-col justify-between`}
           >
-            <p className="text-sm uppercase tracking-[0.3em] text-white/70">
+            <p className="text-xs uppercase tracking-[0.26em] text-white/70">
               {stat.label}
             </p>
-            <p className="text-xl font-semibold">{stat.value}</p>
+            <p className="text-lg font-semibold leading-tight">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
         {/* CPU */}
-        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_12px_25px_rgba(15,23,42,0.35)]">
+        <div className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 xl:col-span-2 shadow-[0_10px_20px_rgba(15,23,42,0.35)]">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">CPU Load</h2>
@@ -128,7 +128,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-40">
+          <div className="h-48 md:h-36">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cpuHistory}>
                 <XAxis
@@ -164,7 +164,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
           {/* RAM */}
           <GaugeCard
             title="Memory Usage"
