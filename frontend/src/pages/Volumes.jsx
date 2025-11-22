@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPost } from "../api";
 
@@ -33,7 +33,7 @@ export default function Volumes() {
   });
 
   const deleteVolume = async (volName) => {
-    if (!confirm(`Volume "${volName}" löschen?`)) return;
+    if (!confirm(`Volume "${volName}" loeschen?`)) return;
     await apiDelete(`/api/docker/volume/${volName}`);
     qc.invalidateQueries({ queryKey: ["volumes"] });
   };
@@ -144,3 +144,4 @@ export default function Volumes() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "../api";
 
@@ -37,7 +37,7 @@ export default function SystemInfo() {
       <div>
         <h1 className="text-4xl font-bold">System Overview</h1>
         <p className="text-gray-400">
-          Host-Details und Usage-Balken für CPU, Speicher und Storage.
+          Host-Details und Usage-Balken fuer CPU, Speicher und Storage.
         </p>
       </div>
 
@@ -152,7 +152,7 @@ const UpdateCard = ({ info, update, loading, updater }) => {
         <p>Branch: {info?.branch}</p>
         <p>Channel: {channel}</p>
         <p>Commit: {commitShort || "-"} {info?.build_date ? `(${info.build_date})` : ""}</p>
-        {published && <p>Release: {latestVersion} · {published}</p>}
+        {published && <p>Release: {latestVersion} Â· {published}</p>}
       </div>
       <div className="mt-4 flex items-center gap-3">
         {available ? (
@@ -165,7 +165,7 @@ const UpdateCard = ({ info, update, loading, updater }) => {
           </button>
         ) : (
           <span className="text-emerald-400 text-sm">
-            {loading ? "Prüfe Updates..." : "System ist aktuell"}
+            {loading ? "Pruefe Updates..." : "System ist aktuell"}
           </span>
         )}
         {updater.isPending && <span className="text-sm text-slate-300">Update wird installiert...</span>}
@@ -186,3 +186,4 @@ const UpdateCard = ({ info, update, loading, updater }) => {
     </div>
   );
 };
+

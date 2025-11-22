@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { apiGet } from "../api";
 
@@ -81,7 +81,7 @@ export default function ISO() {
 
       {uploading && (
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-gray-300">
-          Upload läuft... bitte warten
+          Upload laeuft... bitte warten
         </div>
       )}
       {error && (
@@ -113,7 +113,7 @@ export default function ISO() {
               </span>
               <button
                 onClick={async () => {
-                  if (!confirm("ISO löschen?")) return;
+                  if (!confirm("ISO loeschen?")) return;
                   try {
                     await fetch(`/api/storage/iso/${iso.name}${pool ? `?pool=${pool}` : ""}`, { method: "DELETE" });
                     qc.invalidateQueries({ queryKey: ["isos", pool] });
@@ -132,3 +132,4 @@ export default function ISO() {
     </div>
   );
 }
+

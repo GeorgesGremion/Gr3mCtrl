@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { apiGet, apiPost, apiDelete } from "../api";
 import Modal from "../components/Modal";
@@ -75,7 +75,7 @@ export default function VMs() {
         <div>
           <h1 className="text-3xl font-bold">Virtual Machines</h1>
           <p className="text-gray-400">
-            Libvirt/KVM Domains – Start/Stop/Restart/Console.
+            Libvirt/KVM Domains â€“ Start/Stop/Restart/Console.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export default function VMs() {
                     label="Delete"
                     color="slate"
                     onClick={() => {
-                      if (confirm("VM löschen? (undefine + Disk-Verzeichnis entfernen)")) {
+                      if (confirm("VM loeschen? (undefine + Disk-Verzeichnis entfernen)")) {
                         remove.mutate(selected.name);
                       }
                     }}
@@ -187,7 +187,7 @@ export default function VMs() {
                 {tab === "console" && (
                   <div className="text-sm text-gray-300 h-full">
                     {selected.state !== "running" ? (
-                      <p className="text-red-400 mb-2">VM muss laufen, um die Konsole zu öffnen.</p>
+                      <p className="text-red-400 mb-2">VM muss laufen, um die Konsole zu oeffnen.</p>
                     ) : (
                       <VncViewer vmName={selected.name} onClose={() => setConsoleVM("")} inline />
                     )}
@@ -205,18 +205,18 @@ export default function VMs() {
                 )}
                 {tab === "network" && (
                   <div className="text-sm text-gray-200">
-                    <p>Netzwerkdetails sind noch nicht verfügbar (XML-Auswertung fehlt).</p>
+                    <p>Netzwerkdetails sind noch nicht verfuegbar (XML-Auswertung fehlt).</p>
                   </div>
                 )}
                 {tab === "options" && (
                   <div className="text-sm text-gray-200">
-                    <p>Weitere VM-Optionen werden hier ergänzt (Autostart, Labels, Notes).</p>
+                    <p>Weitere VM-Optionen werden hier ergaenzt (Autostart, Labels, Notes).</p>
                   </div>
                 )}
               </div>
             </>
           ) : (
-            <p className="text-gray-400">Bitte eine VM links auswählen.</p>
+            <p className="text-gray-400">Bitte eine VM links auswaehlen.</p>
           )}
         </div>
       </div>
@@ -263,7 +263,7 @@ export default function VMs() {
               onChange={(e) => setForm({ ...form, iso: e.target.value })}
               className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2"
             >
-              <option value="">Bitte ISO wählen</option>
+              <option value="">Bitte ISO waehlen</option>
               {isos?.map((iso) => (
                 <option key={iso.name} value={iso.path}>
                   {iso.name}
@@ -349,3 +349,4 @@ const Field = ({ label, children }) => (
     {children}
   </div>
 );
+

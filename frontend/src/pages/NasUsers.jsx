@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut } from "../api";
 
@@ -135,7 +135,7 @@ export default function NasUsers() {
                     onClick={() => del.mutate(u.id)}
                     className="px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 text-sm"
                   >
-                    Löschen
+                    Loeschen
                   </button>
                 </div>
               </div>
@@ -170,3 +170,4 @@ const Field = ({ label, children }) => (
     {children}
   </div>
 );
+

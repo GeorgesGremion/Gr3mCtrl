@@ -5,7 +5,9 @@ import "xterm/css/xterm.css";
 
 const wsURL = () => {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/ws/shell`;
+  const secret = window.localStorage.getItem("gr3mctrl_shell_secret");
+  const suffix = secret ? `?secret=${encodeURIComponent(secret)}` : "";
+  return `${proto}//${window.location.host}/ws/shell${suffix}`;
 };
 
 export default function TerminalModal({ open, onClose }) {
@@ -102,7 +104,7 @@ export default function TerminalModal({ open, onClose }) {
             onClick={onClose}
             className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
           >
-            Schließen
+            Schliessen
           </button>
         </div>
         <div className="flex-1 bg-black">
@@ -112,3 +114,4 @@ export default function TerminalModal({ open, onClose }) {
     </div>
   );
 }
+

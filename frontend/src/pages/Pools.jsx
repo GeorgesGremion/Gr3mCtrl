@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../api";
 
@@ -90,7 +90,7 @@ export default function Pools() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Storage Pools</h1>
-          <p className="text-gray-400">Unraid-ähnliche Pools (Parity + Data)</p>
+          <p className="text-gray-400">Unraid-aehnliche Pools (Parity + Data)</p>
         </div>
       </div>
 
@@ -120,13 +120,13 @@ export default function Pools() {
             </Field>
             <Field label="Data Disks (Mehrfachauswahl)">
               <div className="flex items-center justify-between mb-2 text-xs text-gray-400">
-                <span>Nur ungemountete Disks können ausgewählt werden.</span>
+                <span>Nur ungemountete Disks koennen ausgewaehlt werden.</span>
                 <button
                   type="button"
                   className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20"
                   onClick={() => setSelectedDisks(selectableDataDisks.map((d) => `/dev/${d.name}`))}
                 >
-                  Alle freien wählen
+                  Alle freien waehlen
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -184,7 +184,7 @@ export default function Pools() {
                 <thead>
                   <tr className="text-gray-400">
                     <th className="py-2">Name</th>
-                    <th className="py-2">Größe</th>
+                    <th className="py-2">Groesse</th>
                     <th className="py-2">Mount</th>
                     <th className="py-2">Modell</th>
                     <th className="py-2">Typ</th>
@@ -218,7 +218,7 @@ export default function Pools() {
                   <h3 className="text-xl font-semibold">{p.name}</h3>
                   {p.orphan && (
                     <span className="inline-flex items-center gap-2 text-xs text-amber-300">
-                      ⚠️ Verwaister Pool – nur noch in ZFS vorhanden
+                      Achtung: Verwaister Pool - nur noch in ZFS vorhanden
                     </span>
                   )}
                   <p className="text-gray-300 text-sm">Layout: {p.layout || "stripe"}</p>
@@ -242,8 +242,8 @@ export default function Pools() {
                   <button
                     onClick={() => {
                       const message = p.orphan
-                        ? `Verwaisten Pool "${p.name}" systemweit zerstören? Alle Disks werden gewiped.`
-                        : `Pool "${p.name}" wirklich löschen? Daten und Disks werden gewiped.`;
+                        ? `Verwaisten Pool "${p.name}" systemweit zerstoeren? Alle Disks werden gewiped.`
+                        : `Pool "${p.name}" wirklich loeschen? Daten und Disks werden gewiped.`;
                       if (confirm(message)) {
                         del.mutate(p.name);
                       }
@@ -251,7 +251,7 @@ export default function Pools() {
                     disabled={del.isPending}
                     className="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-sm disabled:opacity-60"
                   >
-                    {del.isPending ? "Lösche..." : "Delete"}
+                    {del.isPending ? "Loesche..." : "Delete"}
                   </button>
                   {del.isError && <span className="text-xs text-red-400">{del.error?.response?.data || del.error?.message}</span>}
                 </div>
@@ -262,7 +262,7 @@ export default function Pools() {
                   <ul className="list-disc list-inside space-y-1">
                     {p.shares.map((s) => (
                       <li key={s.name}>
-                        {s.name} — {s.path} ({s.smb ? "SMB" : ""}{s.smb && s.nfs ? ", " : ""}{s.nfs ? "NFS" : ""})
+                        {s.name} - {s.path} ({s.smb ? "SMB" : ""}{s.smb && s.nfs ? ", " : ""}{s.nfs ? "NFS" : ""})
                       </li>
                     ))}
                   </ul>
@@ -328,3 +328,4 @@ const DiskRow = ({ disk, level, onFormat, formatPending, formattingDevice }) => 
     </>
   );
 };
+

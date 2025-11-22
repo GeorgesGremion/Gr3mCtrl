@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut } from "../api";
 
@@ -192,7 +192,7 @@ export default function Shares() {
                   onChange={(e) => setForm({ ...form, owner: e.target.value })}
                   className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2"
                 >
-                  <option value="">Owner wählen</option>
+                  <option value="">Owner wÃ¤hlen</option>
                   {nasUsers?.map((u) => (
                     <option key={u.id} value={u.username}>
                       {u.username}
@@ -204,7 +204,7 @@ export default function Shares() {
                   onChange={(e) => setForm({ ...form, group: e.target.value })}
                   className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2"
                 >
-                  <option value="">Gruppe wählen</option>
+                  <option value="">Gruppe wÃ¤hlen</option>
                   {nasUsers?.map((u) => (
                     <option key={u.id} value={u.username}>
                       {u.username}
@@ -306,9 +306,9 @@ export default function Shares() {
                 <p className="text-gray-300 text-sm">Pfad: {s.path}</p>
                 <p className="text-gray-300 text-sm">Pool: {s.pool || "-"}</p>
                 <p className="text-gray-400 text-xs">
-                  Owner/Group: {s.owner || "-"} / {s.group || "-"} · Mode: {s.mode}
+                  Owner/Group: {s.owner || "-"} / {s.group || "-"} Â· Mode: {s.mode}
                 </p>
-                <p className="text-gray-400 text-xs">SMB: {s.smb ? "ja" : "nein"} · NFS: {s.nfs ? "ja" : "nein"}</p>
+                <p className="text-gray-400 text-xs">SMB: {s.smb ? "ja" : "nein"} Â· NFS: {s.nfs ? "ja" : "nein"}</p>
                 {(s.users_read?.length > 0 || s.users_write?.length > 0) && (
                   <div className="text-gray-300 text-xs mt-1 space-y-1">
                     {s.users_read?.length > 0 && (
@@ -346,7 +346,7 @@ export default function Shares() {
                   defaultValue="__noop__"
                   className="bg-black/40 border border-white/10 rounded px-2 py-1 text-xs"
                 >
-                  <option value="__noop__">Pool wechseln…</option>
+                  <option value="__noop__">Pool wechselnâ€¦</option>
                   <option value="__default__">Default</option>
                   {pools?.map((p) => (
                     <option key={p.name} value={p.name}>{p.name}</option>
@@ -400,3 +400,4 @@ const ServiceBadge = ({ name, status, onStart, onStop }) => {
     </div>
   );
 };
+

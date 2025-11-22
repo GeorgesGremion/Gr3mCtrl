@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Line,
@@ -122,10 +122,10 @@ export default function Dashboard() {
         <div className="rounded-2xl border border-white/15 bg-gradient-to-r from-amber-500/20 via-purple-600/15 to-blue-500/20 p-4 flex items-center justify-between shadow-[0_15px_35px_rgba(30,41,59,0.35)]">
           <div>
             <p className="text-sm text-amber-200 uppercase tracking-[0.18em]">
-              Update verfügbar
+              Update verfuegbar
             </p>
             <p className="text-lg font-semibold">
-              Neu: {updateInfo.latest_version || "-"} · Jetzt installieren bei System Info
+              Neu: {updateInfo.latest_version || "-"} -> Jetzt installieren bei System Info
             </p>
           </div>
           <button
@@ -148,7 +148,7 @@ export default function Dashboard() {
             <div>
               <h2 className="text-xl font-semibold tracking-tight">CPU Load</h2>
               <p className="text-gray-400 text-sm">
-                {data.cpu_count} Cores · Refresh {refreshInterval / 1000}s
+                {data.cpu_count} Cores Â· Refresh {refreshInterval / 1000}s
               </p>
             </div>
             <div className="text-2xl font-bold text-green-400">
@@ -309,3 +309,4 @@ const SummaryBadge = ({ label, value, accent = "text-white" }) => (
     <p className={`text-2xl font-semibold ${accent}`}>{value}</p>
   </div>
 );
+

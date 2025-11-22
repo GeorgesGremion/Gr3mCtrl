@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet } from "../api";
 
 export default function Images() {
@@ -23,7 +23,7 @@ export default function Images() {
       <div>
         <h1 className="text-3xl font-bold">Docker Images</h1>
         <p className="text-gray-400">
-          Übersicht über lokale Images und Container-Nutzung.
+          Uebersicht ueber lokale Images und Container-Nutzung.
         </p>
       </div>
 
@@ -49,7 +49,7 @@ export default function Images() {
                 <button
                   className="bg-red-600/80 hover:bg-red-500 px-4 py-2 rounded-lg text-sm font-semibold"
                   onClick={async () => {
-                    if (!confirm("Image wirklich löschen?")) return;
+                    if (!confirm("Image wirklich loeschen?")) return;
                     try {
                       await apiDelete(`/api/docker/image/${img.Id}/delete`);
                       qc.invalidateQueries({ queryKey: ["images"] });
@@ -75,3 +75,5 @@ export default function Images() {
     </div>
   );
 }
+
+

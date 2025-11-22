@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost, apiGetJson, apiDeleteJson, apiGetList, apiPut } from "../api";
 
@@ -82,7 +82,7 @@ export default function Compose() {
   });
 
   const deleteStack = async (stack) => {
-    if (!confirm(`Stack "${stack}" wirklich löschen?`)) return;
+    if (!confirm(`Stack "${stack}" wirklich loeschen?`)) return;
     setActionState({ [stack]: "delete" });
     try {
       await apiDeleteJson(`/api/compose/stack/${stack}`);
@@ -225,7 +225,7 @@ export default function Compose() {
         <div className="xl:col-span-2 space-y-4">
           {volumes && volumes.length > 0 && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xl shadow-[0_20px_45px_rgba(15,23,42,0.35)] space-y-2">
-              <h3 className="text-lg font-semibold">Volumes einfügen</h3>
+              <h3 className="text-lg font-semibold">Volumes einfuegen</h3>
               <div className="flex flex-wrap gap-2">
                 {volumes.map((vol) => (
                   <button
@@ -303,10 +303,10 @@ export default function Compose() {
                 <div>
                   <h3 className="text-2xl font-semibold">{stack.name}</h3>
                   <p className="text-gray-400 text-sm">
-                    Services: {stack.services} · Status: {stack.status} · Pool: {stack.pool || "default"}
+                    Services: {stack.services} Â· Status: {stack.status} Â· Pool: {stack.pool || "default"}
                   </p>
                   {selected === stack.name && (
-                    <p className="text-xs text-emerald-400">Ausgewählt für Bearbeitung</p>
+                    <p className="text-xs text-emerald-400">Ausgewaehlt fuer Bearbeitung</p>
                   )}
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -346,7 +346,7 @@ export default function Compose() {
 
               {actionState[stack.name] && (
                 <p className="text-xs text-gray-400 mt-2">
-                  Aktion {actionState[stack.name]} läuft...
+                  Aktion {actionState[stack.name]} laeuft...
                 </p>
               )}
             </div>
@@ -356,3 +356,4 @@ export default function Compose() {
     </div>
   );
 }
+

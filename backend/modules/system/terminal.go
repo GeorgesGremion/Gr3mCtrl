@@ -10,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"crypto/subtle"
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
+	"net/url"
 )
 
 type resizeMsg struct {
@@ -21,24 +23,85 @@ type resizeMsg struct {
 }
 
 var shellUpgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		u, err := url.Parse(origin)
+		if err != nil {
+			return false
+		}
+		originHost := strings.ToLower(u.Hostname())
+		if originHost == "" {
+			return false
+		}
+		// Allow same host and local development origins only.
+		host := strings.ToLower(r.Host)
+		if h, _, err := net.SplitHostPort(host); err == nil {
+			host = h
+		}
+		if originHost == host || originHost == "localhost" || originHost == "127.0.0.1" || originHost == "::1" {
+			return true
+		}
+		return false
+	},
+}
+
+func clientIP(r *http.Request) net.IP {
+	if xff := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]); xff != "" {
+		if ip := net.ParseIP(xff); ip != nil {
+			return ip
+		}
+	}
+	if xr := strings.TrimSpace(r.Header.Get("X-Real-IP")); xr != "" {
+		if ip := net.ParseIP(xr); ip != nil {
+			return ip
+		}
+	}
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err != nil {
+		return nil
+	}
+	return net.ParseIP(host)
+}
+
+func providedSecret(r *http.Request) string {
+	if hdr := strings.TrimSpace(r.Header.Get("X-Gr3mctrl-Shell-Secret")); hdr != "" {
+		return hdr
+	}
+	if q := strings.TrimSpace(r.URL.Query().Get("secret")); q != "" {
+		return q
+	}
+	if c, err := r.Cookie("gr3mctrl_shell_secret"); err == nil {
+		if v := strings.TrimSpace(c.Value); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // ShellWS exposes a PTY-backed shell over WebSocket.
 // Only expose this behind trusted auth and localhost gateway.
 func ShellWS(w http.ResponseWriter, r *http.Request) {
-	host, _, _ := net.SplitHostPort(r.RemoteAddr)
-	if ip := net.ParseIP(host); ip != nil && !ip.IsLoopback() {
+	client := clientIP(r)
+	isLocal := client != nil && client.IsLoopback()
+
+	envSecret := strings.TrimSpace(os.Getenv("GR3MCTRL_SHELL_SECRET"))
+	given := providedSecret(r)
+
+	// Harden remote access: block non-local clients unless a secret is set and provided.
+	if !isLocal && envSecret == "" {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	secret := strings.TrimSpace(os.Getenv("GR3MCTRL_SHELL_SECRET"))
-	if secret != "" {
-		if hdr := r.Header.Get("X-Gr3mctrl-Shell-Secret"); hdr != secret {
+	if envSecret != "" {
+		if subtle.ConstantTimeCompare([]byte(envSecret), []byte(given)) != 1 {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 	}
+
 	conn, err := shellUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("shell upgrade error: %v", err)
