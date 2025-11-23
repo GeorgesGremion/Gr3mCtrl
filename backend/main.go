@@ -16,7 +16,16 @@ func main() {
 	}
 
 	log.Printf("gr3mctrl Backend lauscht auf %s (nur lokal erreichbar)\n", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	
+	// Custom server with no body size limits for large uploads
+	server := &http.Server{
+		Addr:           addr,
+		Handler:        nil, // use DefaultServeMux
+		MaxHeaderBytes: 1 << 20, // 1 MB
+		// No ReadTimeout/WriteTimeout to allow large uploads
+	}
+	
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -63,6 +63,12 @@ func ListISOs(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/storage/isos (multipart form-data, file field "iso", optional pool field)
 func UploadISO(w http.ResponseWriter, r *http.Request) {
+	// Parse multipart form with 100MB max memory, rest goes to temp files
+	if err := r.ParseMultipartForm(100 << 20); err != nil {
+		http.Error(w, "parse form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	pool := strings.TrimSpace(r.FormValue("pool"))
 	dir, err := ensureISODir(pool)
 	if err != nil {

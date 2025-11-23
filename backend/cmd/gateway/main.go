@@ -30,7 +30,16 @@ func main() {
 	mux.HandleFunc("/", spaHandler(distDir))
 
 	log.Printf("gr3mctrl Gateway lauscht auf %s (Backend %s, Dist %s)\n", listenAddr, backendURL, distDir)
-	if err := http.ListenAndServe(listenAddr, withSecurityHeaders(mux)); err != nil {
+	
+	// Custom server with increased limits for ISO uploads (10GB max)
+	server := &http.Server{
+		Addr:           listenAddr,
+		Handler:        withSecurityHeaders(mux),
+		MaxHeaderBytes: 1 << 20, // 1 MB
+		// No ReadTimeout/WriteTimeout to allow large uploads
+	}
+	
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
