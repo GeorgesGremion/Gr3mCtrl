@@ -151,8 +151,18 @@ func RegisterRoutes() {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
 	http.HandleFunc("/api/vm/networks", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
+		switch r.Method {
+		case http.MethodGet:
 			vm.ListNetworks(w, r)
+		case http.MethodPost:
+			vm.CreateNetwork(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/api/vm/network/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			vm.DeleteNetwork(w, r)
 			return
 		}
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -165,6 +175,10 @@ func RegisterRoutes() {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
 	http.HandleFunc("/api/vm/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/media") {
+			vm.ChangeMedia(w, r)
+			return
+		}
 		if r.Method == http.MethodPost {
 			vm.DomainAction(w, r)
 			return

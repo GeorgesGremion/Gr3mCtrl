@@ -319,9 +319,17 @@ func GetDomain(w http.ResponseWriter, r *http.Request) {
 			Address string `xml:"address,attr"`
 		} `xml:"listen"`
 	}
+	type Source struct {
+		File string `xml:"file,attr"`
+	}
+	type Disk struct {
+		Device string `xml:"device,attr"`
+		Source Source `xml:"source"`
+	}
 	type DomainXML struct {
 		XMLName  xml.Name   `xml:"domain"`
 		Graphics []Graphics `xml:"devices>graphics"`
+		Disks    []Disk     `xml:"devices>disk"`
 	}
 
 	var dxml DomainXML
@@ -335,9 +343,18 @@ func GetDomain(w http.ResponseWriter, r *http.Request) {
 		console["address"] = g.Listen.Address
 	}
 
+	var cdrom string
+	for _, d := range dxml.Disks {
+		if d.Device == "cdrom" {
+			cdrom = d.Source.File
+			break
+		}
+	}
+
 	resp := map[string]interface{}{
 		"name":    name,
 		"console": console,
+		"cdrom":   cdrom,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -615,4 +632,102 @@ func SPICEProxy(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	<-errCh
+}
+
+type ChangeMediaRequest struct {
+	ISO string `json:"iso"` // path to iso, or empty to eject
+}
+
+// POST /api/vm/{name}/media
+func ChangeMedia(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/media")
+	name = strings.TrimSpace(name)
+
+	var req ChangeMediaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	// Find CDROM device target (usually hda, sda, or sr0)
+	xmlDesc, err := dom.GetXMLDesc(0)
+	if err != nil {
+		http.Error(w, "get xml: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	targetDev, bus, err := findCDROMTarget(xmlDesc)
+	if err != nil {
+		http.Error(w, "no cdrom device found: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Construct new disk XML
+	// If ISO is empty, we eject (empty source)
+	sourceXML := ""
+	if req.ISO != "" {
+		sourceXML = fmt.Sprintf("<source file='%s'/>", req.ISO)
+	}
+
+	// We must match the existing device definition mostly
+	diskXML := fmt.Sprintf(`
+		<disk type='file' device='cdrom'>
+			<driver name='qemu' type='raw'/>
+			%s
+			<target dev='%s' bus='%s'/>
+			<readonly/>
+		</disk>`, sourceXML, targetDev, bus)
+
+	// Update live and config
+	flags := libvirt.DOMAIN_DEVICE_MODIFY_LIVE | libvirt.DOMAIN_DEVICE_MODIFY_CONFIG
+	isActive, _ := dom.IsActive()
+	if !isActive {
+		flags = libvirt.DOMAIN_DEVICE_MODIFY_CONFIG
+	}
+
+	if err := dom.UpdateDeviceFlags(diskXML, flags); err != nil {
+		http.Error(w, "update device: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "iso": req.ISO})
+}
+
+func findCDROMTarget(xmlDesc string) (dev, bus string, err error) {
+	type Disk struct {
+		Device string `xml:"device,attr"`
+		Target struct {
+			Dev string `xml:"dev,attr"`
+			Bus string `xml:"bus,attr"`
+		} `xml:"target"`
+	}
+	type Domain struct {
+		Disks []Disk `xml:"devices>disk"`
+	}
+	var d Domain
+	if err := xml.Unmarshal([]byte(xmlDesc), &d); err != nil {
+		return "", "", err
+	}
+	for _, disk := range d.Disks {
+		if disk.Device == "cdrom" {
+			return disk.Target.Dev, disk.Target.Bus, nil
+		}
+	}
+	return "", "", fmt.Errorf("cdrom not found")
 }

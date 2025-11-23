@@ -62,6 +62,23 @@ export default function VMs() {
   const [consoleVM, setConsoleVM] = useState("");
   const [selected, setSelected] = useState(null);
   const [tab, setTab] = useState("console");
+  const [isoSelection, setIsoSelection] = useState("");
+
+  const { data: selectedDetail } = useQuery({
+    queryKey: ["vm-detail", selected?.name],
+    queryFn: () => apiGet(`/api/vm/domain/${selected.name}`),
+    enabled: !!selected?.name,
+    refetchInterval: 5000,
+  });
+
+  const changeMedia = useMutation({
+    mutationFn: ({ name, iso }) => apiPost(`/api/vm/${name}/media`, { iso }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vm-detail"] });
+      setIsoSelection("");
+    },
+    onError: (err) => alert("Fehler: " + (err.response?.data || err.message)),
+  });
 
   useEffect(() => {
     if (data && data.length > 0 && !selected) {
@@ -108,9 +125,8 @@ export default function VMs() {
                     setSelected(vm);
                     setTab("console");
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-lg border ${
-                    active ? "border-blue-400 bg-blue-900/40" : "border-white/10 bg-black/30 hover:bg-black/40"
-                  }`}
+                  className={`w-full text-left px-3 py-2 rounded-lg border ${active ? "border-blue-400 bg-blue-900/40" : "border-white/10 bg-black/30 hover:bg-black/40"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -118,9 +134,8 @@ export default function VMs() {
                       <p className="text-xs text-gray-400">UUID: {vm.uuid}</p>
                     </div>
                     <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        vm.state === "running" ? "bg-emerald-600/70" : "bg-slate-700"
-                      }`}
+                      className={`px-2 py-1 rounded text-xs ${vm.state === "running" ? "bg-emerald-600/70" : "bg-slate-700"
+                        }`}
                     >
                       {vm.state}
                     </span>
@@ -168,17 +183,16 @@ export default function VMs() {
                   <button
                     key={t}
                     onClick={() => setTab(t)}
-                    className={`px-3 py-2 rounded-t-md ${
-                      tab === t ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
-                    }`}
+                    className={`px-3 py-2 rounded-t-md ${tab === t ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
+                      }`}
                   >
                     {t === "console"
                       ? "Console"
                       : t === "hardware"
-                      ? "Hardware"
-                      : t === "network"
-                      ? "Netzwerk"
-                      : "Optionen"}
+                        ? "Hardware"
+                        : t === "network"
+                          ? "Netzwerk"
+                          : "Optionen"}
                   </button>
                 ))}
               </div>
@@ -194,13 +208,50 @@ export default function VMs() {
                   </div>
                 )}
                 {tab === "hardware" && (
-                  <div className="space-y-2 text-sm text-gray-200">
-                    <p>Name: {selected.name}</p>
-                    <p>UUID: {selected.uuid}</p>
-                    <p>ID: {selected.id}</p>
-                    <p>Status: {selected.state}</p>
-                    <p>Kern/CPU: n/a (Detail-API fehlt)</p>
-                    <p>RAM: n/a (Detail-API fehlt)</p>
+                  <div className="space-y-6 text-sm text-gray-200">
+                    <div className="space-y-2">
+                      <p><span className="text-gray-400 w-24 inline-block">Name:</span> {selected.name}</p>
+                      <p><span className="text-gray-400 w-24 inline-block">UUID:</span> {selected.uuid}</p>
+                      <p><span className="text-gray-400 w-24 inline-block">ID:</span> {selected.id}</p>
+                      <p><span className="text-gray-400 w-24 inline-block">Status:</span> {selected.state}</p>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-4">
+                      <h4 className="text-base font-semibold mb-3">CD-ROM / ISO</h4>
+                      <div className="bg-black/20 p-4 rounded-lg space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400">Aktuell eingelegt:</span>
+                          <span className="font-mono text-emerald-400">{selectedDetail?.cdrom || "Leer"}</span>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <select
+                            className="bg-slate-800 border border-slate-700 rounded px-2 py-1 flex-1"
+                            onChange={(e) => setIsoSelection(e.target.value)}
+                            value={isoSelection}
+                          >
+                            <option value="">ISO auswählen...</option>
+                            {isos?.map(iso => (
+                              <option key={iso.path} value={iso.path}>{iso.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => changeMedia.mutate({ name: selected.name, iso: isoSelection })}
+                            disabled={!isoSelection || changeMedia.isPending}
+                            className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded disabled:opacity-50"
+                          >
+                            Einlegen
+                          </button>
+                          <button
+                            onClick={() => changeMedia.mutate({ name: selected.name, iso: "" })}
+                            disabled={!selectedDetail?.cdrom || changeMedia.isPending}
+                            className="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded disabled:opacity-50"
+                          >
+                            Auswerfen
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {tab === "network" && (
