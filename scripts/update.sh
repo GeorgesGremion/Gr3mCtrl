@@ -146,25 +146,47 @@ EOF
     return 0
   fi
 
+  echo "Stopping services..." >&2
   systemctl stop "$SERVICE_GATEWAY" "$SERVICE_BACKEND" >/dev/null 2>&1 || true
+  sleep 2
 
+  echo "Pulling latest changes..." >&2
   git -C "$APP_DIR" checkout "$branch"
   git -C "$APP_DIR" reset --hard "origin/$branch"
 
+  echo "Building backend..." >&2
   pushd "$APP_DIR/backend" >/dev/null
   go build -o "$BACKEND_BIN" ./main.go
   go build -o "$GATEWAY_BIN" ./cmd/gateway/main.go
   popd >/dev/null
 
+  echo "Building frontend..." >&2
   pushd "$FRONTEND_DIR" >/dev/null
-  npm install
-  npm run build
+  npm install --silent
+  npm run build --silent
   popd >/dev/null
 
   write_version_file "$branch" "$remote_commit" "branch"
 
-  systemctl start "$SERVICE_BACKEND"
-  systemctl start "$SERVICE_GATEWAY"
+  echo "Reloading systemd and restarting services..." >&2
+  systemctl daemon-reload
+  systemctl restart "$SERVICE_BACKEND"
+  sleep 2
+  systemctl restart "$SERVICE_GATEWAY"
+  sleep 1
+
+  # Verify services are running
+  if ! systemctl is-active --quiet "$SERVICE_BACKEND"; then
+    echo '{"status":"error","message":"Backend service failed to start"}' >&2
+    journalctl -u "$SERVICE_BACKEND" -n 20 --no-pager >&2
+    exit 1
+  fi
+
+  if ! systemctl is-active --quiet "$SERVICE_GATEWAY"; then
+    echo '{"status":"error","message":"Gateway service failed to start"}' >&2
+    journalctl -u "$SERVICE_GATEWAY" -n 20 --no-pager >&2
+    exit 1
+  fi
 
   cat <<EOF
 {"status":"success","message":"Update installiert","current_commit":"$remote_commit"}
@@ -190,25 +212,47 @@ PY
   git -C "$APP_DIR" fetch --tags origin >/dev/null 2>&1
   remote_commit=$(git -C "$APP_DIR" rev-parse "refs/tags/$tag^{commit}")
 
+  echo "Stopping services..." >&2
   systemctl stop "$SERVICE_GATEWAY" "$SERVICE_BACKEND" >/dev/null 2>&1 || true
+  sleep 2
 
+  echo "Checking out release $tag..." >&2
   git -C "$APP_DIR" checkout --force "$tag"
   git -C "$APP_DIR" reset --hard "$remote_commit"
 
+  echo "Building backend..." >&2
   pushd "$APP_DIR/backend" >/dev/null
   go build -o "$BACKEND_BIN" ./main.go
   go build -o "$GATEWAY_BIN" ./cmd/gateway/main.go
   popd >/dev/null
 
+  echo "Building frontend..." >&2
   pushd "$FRONTEND_DIR" >/dev/null
-  npm install
-  npm run build
+  npm install --silent
+  npm run build --silent
   popd >/dev/null
 
   write_version_file "$tag" "$remote_commit" "release"
 
-  systemctl start "$SERVICE_BACKEND"
-  systemctl start "$SERVICE_GATEWAY"
+  echo "Reloading systemd and restarting services..." >&2
+  systemctl daemon-reload
+  systemctl restart "$SERVICE_BACKEND"
+  sleep 2
+  systemctl restart "$SERVICE_GATEWAY"
+  sleep 1
+
+  # Verify services are running
+  if ! systemctl is-active --quiet "$SERVICE_BACKEND"; then
+    echo '{"status":"error","message":"Backend service failed to start"}' >&2
+    journalctl -u "$SERVICE_BACKEND" -n 20 --no-pager >&2
+    exit 1
+  fi
+
+  if ! systemctl is-active --quiet "$SERVICE_GATEWAY"; then
+    echo '{"status":"error","message":"Gateway service failed to start"}' >&2
+    journalctl -u "$SERVICE_GATEWAY" -n 20 --no-pager >&2
+    exit 1
+  fi
 
   cat <<EOF
 {"status":"success","message":"Update auf $tag installiert","version":"$tag"}
