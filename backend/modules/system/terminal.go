@@ -84,9 +84,6 @@ func providedSecret(r *http.Request) string {
 // ShellWS exposes a PTY-backed shell over WebSocket.
 // Only expose this behind trusted auth and localhost gateway.
 func ShellWS(w http.ResponseWriter, r *http.Request) {
-	client := clientIP(r)
-	isLocal := client != nil && client.IsLoopback()
-
 	envSecret := strings.TrimSpace(os.Getenv("GR3MCTRL_SHELL_SECRET"))
 	given := providedSecret(r)
 
