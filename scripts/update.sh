@@ -182,6 +182,17 @@ EOF
     exit 1
   fi
 
+  if ! systemctl is-active --quiet "$SERVICE_GATEWAY"; then
+    echo '{"status":"error","message":"Gateway service failed to start"}' >&2
+    journalctl -u "$SERVICE_GATEWAY" -n 20 --no-pager >&2
+    exit 1
+  fi
+
+  cat <<EOF
+{"status":"success","message":"Update auf $branch installiert","version":"$branch"}
+EOF
+}
+
 apply_release_update() {
   local release_json tag remote_commit
   if ! release_json=$(curl -fsSL -H "Accept: application/vnd.github+json" -H "User-Agent: gr3mctrl-updater" "https://api.github.com/repos/$REPO_SLUG/releases/latest"); then

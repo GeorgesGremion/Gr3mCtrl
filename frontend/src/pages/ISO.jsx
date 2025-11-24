@@ -32,6 +32,11 @@ export default function ISO() {
         body: form,
       });
       if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error(
+            "Upload abgewiesen (413 Request Entity Too Large). Bitte im vorgeschalteten Proxy/Gateway (z.B. nginx/openresty) client_max_body_size auf z.B. 10G erhöhen oder den gr3mctrl-Gateway direkt (Port 4173) aufrufen."
+          );
+        }
         const msg = await res.text();
         throw new Error(msg);
       }
