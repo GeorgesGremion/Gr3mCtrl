@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-const isoDir = "/var/lib/gr3mctrl/isos"
+	"gr3mctrl/modules/settings"
+)
 
 type ISOInfo struct {
 	Name  string `json:"name"`
@@ -19,18 +19,29 @@ type ISOInfo struct {
 	Mount string `json:"mount,omitempty"`
 }
 
-func ensureISODir(pool string) (string, error) {
+func resolveISOPath(pool string) (string, string, error) {
+	cfg, err := settings.LoadConfig()
+	if err != nil {
+		return "", "", err
+	}
+	// Allow default ISO pool from settings unless explicitly overridden by query.
+	if pool == "" && strings.TrimSpace(cfg.ISO_Pool) != "" {
+		pool = strings.TrimSpace(cfg.ISO_Pool)
+	}
+
 	if pool != "" {
 		path := filepath.Join("/mnt/gr3mctrl/pools", pool, "isos")
-		return path, os.MkdirAll(path, 0o755)
+		return path, pool, os.MkdirAll(path, 0o755)
 	}
-	return isoDir, os.MkdirAll(isoDir, 0o755)
+
+	base := filepath.Join(cfg.DataPath, "isos")
+	return base, "", os.MkdirAll(base, 0o755)
 }
 
 // GET /api/storage/isos?pool=<pool>
 func ListISOs(w http.ResponseWriter, r *http.Request) {
 	pool := strings.TrimSpace(r.URL.Query().Get("pool"))
-	dir, err := ensureISODir(pool)
+	dir, resolvedPool, err := resolveISOPath(pool)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -52,7 +63,7 @@ func ListISOs(w http.ResponseWriter, r *http.Request) {
 			Name:  e.Name(),
 			Size:  info.Size(),
 			Path:  filepath.Join(dir, e.Name()),
-			Pool:  pool,
+			Pool:  resolvedPool,
 			Mount: dir,
 		})
 	}
@@ -70,7 +81,7 @@ func UploadISO(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pool := strings.TrimSpace(r.FormValue("pool"))
-	dir, err := ensureISODir(pool)
+	dir, resolvedPool, err := resolveISOPath(pool)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -98,7 +109,7 @@ func UploadISO(w http.ResponseWriter, r *http.Request) {
 
 	info, _ := dst.Stat()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ISOInfo{Name: header.Filename, Size: info.Size(), Path: dstPath, Pool: pool, Mount: dir})
+	json.NewEncoder(w).Encode(ISOInfo{Name: header.Filename, Size: info.Size(), Path: dstPath, Pool: resolvedPool, Mount: dir})
 }
 
 // DELETE /api/storage/iso/{name}
@@ -110,7 +121,7 @@ func DeleteISO(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pool := strings.TrimSpace(r.URL.Query().Get("pool"))
-	dir, err := ensureISODir(pool)
+	dir, _, err := resolveISOPath(pool)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -90,11 +90,6 @@ func ShellWS(w http.ResponseWriter, r *http.Request) {
 	envSecret := strings.TrimSpace(os.Getenv("GR3MCTRL_SHELL_SECRET"))
 	given := providedSecret(r)
 
-	// Harden remote access: block non-local clients unless a secret is set and provided.
-	if !isLocal && envSecret == "" {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
 	if envSecret != "" {
 		if subtle.ConstantTimeCompare([]byte(envSecret), []byte(given)) != 1 {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
