@@ -11,6 +11,8 @@ import (
 var allowedServices = map[string]bool{
 	"gr3mctrl-backend.service": true,
 	"gr3mctrl-gateway.service": true,
+	"docker.service":           true,
+	"libvirtd.service":         true,
 }
 
 func scheduleRestart(service string) error {

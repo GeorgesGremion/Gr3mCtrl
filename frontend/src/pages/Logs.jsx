@@ -4,6 +4,8 @@ import { apiGet } from "../api";
 const SERVICES = [
   { value: "gr3mctrl-backend.service", label: "Backend" },
   { value: "gr3mctrl-gateway.service", label: "Gateway" },
+  { value: "docker.service", label: "Docker" },
+  { value: "libvirtd.service", label: "Libvirt" },
 ];
 
 export default function Logs() {
