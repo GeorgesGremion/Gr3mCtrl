@@ -129,6 +129,7 @@ const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
     badPayload || (updateError && isHtml(updateError))
       ? "Update-Status nicht verfügbar (Proxy/502?)"
       : updateError;
+  const displayUpdateError = sanitizedUpdateError || (badPayload ? "Update-Status nicht verfügbar (Proxy/502?)" : "");
   const published = update?.latest_published
     ? new Date(update.latest_published).toLocaleString()
     : null;
@@ -194,7 +195,7 @@ const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
         <p>Channel: {channel}</p>
         <p>Commit: {commitShort || "-"} {info?.build_date ? `(${info.build_date})` : ""}</p>
         {published && <p>Release: {latestVersion} - {published}</p>}
-        {updateError && <p className="text-rose-400">Update-Status: {updateError}</p>}
+        {displayUpdateError && <p className="text-rose-400">Update-Status: {displayUpdateError}</p>}
         {releaseNotesError && <p className="text-rose-400">{releaseNotesError}</p>}
       </div>
       <div className="mt-4 flex items-center gap-3">
@@ -212,9 +213,6 @@ const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
           </span>
         )}
         {running && <span className="text-sm text-slate-300">Update wird installiert...</span>}
-        {sanitizedUpdateError && !running && (
-          <span className="text-sm text-rose-400">Update-Status-Fehler: {sanitizedUpdateError}</span>
-        )}
         {runError && !waitingForRestart && (
           <span className="text-sm text-rose-400">
             {runError}
