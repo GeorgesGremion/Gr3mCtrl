@@ -134,52 +134,23 @@ const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
     ? new Date(update.latest_published).toLocaleString()
     : null;
   const [justUpdated, setJustUpdated] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [logs, setLogs] = useState("");
   const [runError, setRunError] = useState("");
   const [running, setRunning] = useState(false);
   const [waitingForRestart, setWaitingForRestart] = useState(false);
-  const logRef = useRef(null);
-
-  useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
-    }
-  }, [logs, running]);
 
   const runUpdate = async () => {
-    setLogs("");
     setRunError("");
     setRunning(true);
     setWaitingForRestart(false);
-    setShowModal(true);
     try {
-      const res = await fetch("/api/system/update?stream=1", { method: "POST" });
-      if (!res.ok || !res.body) {
+      const res = await fetch("/api/system/update", { method: "POST" });
+      if (!res.ok) {
         const msg = await res.text();
-        throw new Error(msg || "Update fehlgeschlagen");
+        throw new Error(msg || `Update fehlgeschlagen (HTTP ${res.status})`);
       }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let firstChunk = true;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          const chunk = decoder.decode(value);
-          if (firstChunk && chunk.trim().toLowerCase().startsWith("<html")) {
-            setWaitingForRestart(true);
-            break;
-          }
-          firstChunk = false;
-          setLogs((prev) => prev + chunk);
-        }
-      }
+      setWaitingForRestart(true);
+      setJustUpdated(false);
       setRunning(false);
-      if (!waitingForRestart) {
-        setJustUpdated(true);
-        onUpdated?.();
-      }
     } catch (e) {
       setRunError(e.message);
       setRunning(false);
@@ -230,43 +201,6 @@ const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
       {releaseNotes && (
         <div className="mt-4 text-sm text-gray-300 bg-black/20 rounded-lg p-3 whitespace-pre-wrap max-h-40 overflow-y-auto border border-white/5">
           {releaseNotes}
-        </div>
-      )}
-
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900/95 border border-white/10 rounded-2xl w-full max-w-4xl h-[70vh] shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Update Log</p>
-                <p className="text-xs text-slate-500">
-                  {waitingForRestart ? "Backend startet neu..." : running ? "läuft..." : "fertig"}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
-              >
-                Schliessen
-              </button>
-            </div>
-            <div className="flex-1 bg-black p-3 overflow-auto font-mono text-xs text-slate-200 space-y-3" ref={logRef}>
-              {running && (
-                <div className="flex items-center gap-2 text-slate-300">
-                  <span className="h-3 w-3 rounded-full border-2 border-slate-500 border-t-transparent animate-spin"></span>
-                  <span>Update läuft... Bitte warten, Backend kann kurz nicht erreichbar sein.</span>
-                </div>
-              )}
-              {waitingForRestart && (
-                <div className="flex items-center gap-2 text-amber-300">
-                  <span className="h-3 w-3 rounded-full border-2 border-amber-400 border-t-transparent animate-spin"></span>
-                  <span>Backend wird neu gestartet. Seite in 1-2 Minuten aktualisieren.</span>
-                </div>
-              )}
-              {runError && <div className="text-rose-400">Fehler: {runError}</div>}
-              <pre className="whitespace-pre-wrap">{logs || (!running && !runError ? "Keine Logs" : "")}</pre>
-            </div>
-          </div>
         </div>
       )}
     </div>
