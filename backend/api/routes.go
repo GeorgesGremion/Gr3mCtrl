@@ -340,6 +340,7 @@ func RegisterRoutes() {
 		}
 	})
 	http.HandleFunc("/api/system/service/restart", system.RestartService)
+	http.HandleFunc("/api/system/logs", system.GetLogs)
 	// Settings
 	http.HandleFunc("/api/settings", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {

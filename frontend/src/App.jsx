@@ -17,6 +17,7 @@ import Shares from "./pages/Shares";
 import NasUsers from "./pages/NasUsers";
 import TerminalModal from "./components/TerminalModal";
 import FileManager from "./pages/FileManager";
+import Logs from "./pages/Logs";
 
 export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
@@ -238,6 +239,7 @@ export default function App() {
             {page === "pools" && <Pools />}
             {page === "shares" && <Shares />}
             {page === "filemanager" && <FileManager />}
+            {page === "logs" && <Logs />}
             {page === "nas-users" && <NasUsers />}
             {page === "vms" && <VMs />}
             {page === "isos" && <ISO />}
