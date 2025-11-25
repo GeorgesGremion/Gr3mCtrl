@@ -127,6 +127,7 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
   const [logs, setLogs] = useState("");
   const [runError, setRunError] = useState("");
   const [running, setRunning] = useState(false);
+  const [waitingForRestart, setWaitingForRestart] = useState(false);
   const logRef = useRef(null);
 
   useEffect(() => {
@@ -139,6 +140,7 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
     setLogs("");
     setRunError("");
     setRunning(true);
+    setWaitingForRestart(false);
     setShowModal(true);
     try {
       const res = await fetch("/api/system/update?stream=1", { method: "POST" });
@@ -155,15 +157,18 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
         if (value) {
           const chunk = decoder.decode(value);
           if (firstChunk && chunk.trim().toLowerCase().startsWith("<html")) {
-            throw new Error("Update-Stream liefert HTML (Proxy/Backend nicht erreichbar)");
+            setWaitingForRestart(true);
+            break;
           }
           firstChunk = false;
           setLogs((prev) => prev + chunk);
         }
       }
       setRunning(false);
-      setJustUpdated(true);
-      onUpdated?.();
+      if (!waitingForRestart) {
+        setJustUpdated(true);
+        onUpdated?.();
+      }
     } catch (e) {
       setRunError(e.message);
       setRunning(false);
@@ -195,12 +200,17 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
           </span>
         )}
         {running && <span className="text-sm text-slate-300">Update wird installiert...</span>}
-        {runError && (
+        {runError && !waitingForRestart && (
           <span className="text-sm text-rose-400">
             {runError}
           </span>
         )}
-        {justUpdated && !available && !running && !runError && (
+        {waitingForRestart && (
+          <span className="text-sm text-amber-300">
+            Update läuft, Backend wird neu gestartet... bitte Seite nach 1-2 Minuten neu laden.
+          </span>
+        )}
+        {justUpdated && !available && !running && !runError && !waitingForRestart && (
           <span className="text-sm text-emerald-400">Update abgeschlossen</span>
         )}
       </div>
@@ -216,7 +226,9 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Update Log</p>
-                <p className="text-xs text-slate-500">{running ? "läuft..." : "fertig"}</p>
+                <p className="text-xs text-slate-500">
+                  {waitingForRestart ? "Backend startet neu..." : running ? "läuft..." : "fertig"}
+                </p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -230,6 +242,12 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
                 <div className="flex items-center gap-2 text-slate-300">
                   <span className="h-3 w-3 rounded-full border-2 border-slate-500 border-t-transparent animate-spin"></span>
                   <span>Update läuft... Bitte warten, Backend kann kurz nicht erreichbar sein.</span>
+                </div>
+              )}
+              {waitingForRestart && (
+                <div className="flex items-center gap-2 text-amber-300">
+                  <span className="h-3 w-3 rounded-full border-2 border-amber-400 border-t-transparent animate-spin"></span>
+                  <span>Backend wird neu gestartet. Seite in 1-2 Minuten aktualisieren.</span>
                 </div>
               )}
               {runError && <div className="text-rose-400">Fehler: {runError}</div>}
