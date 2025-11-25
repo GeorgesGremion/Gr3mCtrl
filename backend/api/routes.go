@@ -199,6 +199,22 @@ func RegisterRoutes() {
 			vm.DetachDisk(w, r)
 			return
 		}
+		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/snapshots") {
+			vm.ListSnapshots(w, r)
+			return
+		}
+		if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/snapshot/") && strings.HasSuffix(r.URL.Path, "/revert") {
+			vm.RevertSnapshot(w, r)
+			return
+		}
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/snapshot") {
+			vm.CreateSnapshot(w, r)
+			return
+		}
+		if r.Method == http.MethodDelete && strings.Contains(r.URL.Path, "/snapshot/") {
+			vm.DeleteSnapshot(w, r)
+			return
+		}
 		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/media") {
 			vm.ChangeMedia(w, r)
 			return

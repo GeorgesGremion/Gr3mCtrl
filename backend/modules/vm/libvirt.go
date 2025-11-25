@@ -66,6 +66,15 @@ type diskDetachRequest struct {
 	DeleteFile bool   `json:"delete_file"`  // remove backing file
 }
 
+type snapshotCreateRequest struct {
+	Name string `json:"name"`
+}
+
+type snapshotInfo struct {
+	Name    string `json:"name"`
+	Current bool   `json:"current"`
+}
+
 // List virtual machines via libvirt (KVM)
 func ListDomains(w http.ResponseWriter, r *http.Request) {
 	conn, err := libvirt.NewConnect("qemu:///system")
@@ -1097,6 +1106,181 @@ func DetachDisk(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{"status": "ok", "target": req.Target})
+}
+
+// GET /api/vm/{name}/snapshots
+func ListSnapshots(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/snapshots")
+	name = strings.TrimSpace(name)
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	snaps, err := dom.ListAllSnapshots(0)
+	if err != nil {
+		http.Error(w, "list snapshots: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		for _, s := range snaps {
+			s.Free()
+		}
+	}()
+
+	current, _ := dom.GetSnapshotCurrent(0)
+	currentName := ""
+	if current != nil {
+		currentName, _ = current.GetName()
+		current.Free()
+	}
+
+	resp := []snapshotInfo{}
+	for _, s := range snaps {
+		n, _ := s.GetName()
+		resp = append(resp, snapshotInfo{
+			Name:    n,
+			Current: n == currentName,
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// POST /api/vm/{name}/snapshot
+func CreateSnapshot(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/snapshot")
+	name = strings.TrimSpace(name)
+
+	var req snapshotCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	snapName := strings.TrimSpace(req.Name)
+	if snapName == "" {
+		snapName = fmt.Sprintf("snap-%d", time.Now().Unix())
+	}
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	xml := fmt.Sprintf(`<domainsnapshot><name>%s</name></domainsnapshot>`, snapName)
+	if _, err := dom.CreateSnapshotXML(xml, libvirt.DOMAIN_SNAPSHOT_CREATE_DISK_ONLY|libvirt.DOMAIN_SNAPSHOT_CREATE_ATOMIC|libvirt.DOMAIN_SNAPSHOT_CREATE_NO_METADATA); err != nil {
+		// Retry with metadata if driver requires
+		if _, err2 := dom.CreateSnapshotXML(xml, libvirt.DOMAIN_SNAPSHOT_CREATE_DISK_ONLY|libvirt.DOMAIN_SNAPSHOT_CREATE_ATOMIC); err2 != nil {
+			http.Error(w, "create snapshot: "+err.Error()+" / "+err2.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok", "name": snapName})
+}
+
+// POST /api/vm/{name}/snapshot/{snap}/revert
+func RevertSnapshot(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	parts := strings.Split(path, "/")
+	if len(parts) < 4 { // {name}/snapshot/{snap}/revert
+		http.Error(w, "Pfad erwartet /api/vm/{name}/snapshot/{snap}/revert", http.StatusBadRequest)
+		return
+	}
+	name := parts[0]
+	snapName := parts[2]
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	snap, err := dom.SnapshotLookupByName(snapName, 0)
+	if err != nil {
+		http.Error(w, "snapshot not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer snap.Free()
+
+	if err := dom.RevertToSnapshot(snap, libvirt.DOMAIN_SNAPSHOT_REVERT_RUNNING|libvirt.DOMAIN_SNAPSHOT_REVERT_PAUSED); err != nil {
+		http.Error(w, "revert snapshot: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+}
+
+// DELETE /api/vm/{name}/snapshot/{snap}
+func DeleteSnapshot(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	parts := strings.Split(path, "/")
+	if len(parts) < 3 {
+		http.Error(w, "Pfad erwartet /api/vm/{name}/snapshot/{snap}", http.StatusBadRequest)
+		return
+	}
+	name := parts[0]
+	snapName := parts[2]
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	snap, err := dom.SnapshotLookupByName(snapName, 0)
+	if err != nil {
+		http.Error(w, "snapshot not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer snap.Free()
+
+	if err := snap.Delete(0); err != nil {
+		http.Error(w, "delete snapshot: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 }
 
 // POST /api/vm/{name}/net/attach {network:string, mac?:string, model?:string}

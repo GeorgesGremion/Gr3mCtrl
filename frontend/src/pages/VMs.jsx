@@ -70,6 +70,7 @@ export default function VMs() {
   const [netModel, setNetModel] = useState("virtio");
   const [diskSize, setDiskSize] = useState(10);
   const [diskPool, setDiskPool] = useState("");
+  const [snapshotName, setSnapshotName] = useState("");
 
   const { data: selectedDetail } = useQuery({
     queryKey: ["vm-detail", selected?.name],
@@ -122,6 +123,31 @@ export default function VMs() {
   const detachDisk = useMutation({
     mutationFn: ({ target, delete_file }) => apiPost(`/api/vm/${selected.name}/disk/detach`, { target, delete_file }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-detail", selected?.name], refetchType: "active" }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
+  const snapshots = useQuery({
+    queryKey: ["vm-snapshots", selected?.name],
+    queryFn: () => apiGet(`/api/vm/${selected.name}/snapshots`),
+    enabled: !!selected?.name,
+    refetchInterval: 8000,
+  });
+
+  const createSnapshot = useMutation({
+    mutationFn: (name) => apiPost(`/api/vm/${selected.name}/snapshot`, { name }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-snapshots", selected?.name], refetchType: "active" }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
+  const revertSnapshot = useMutation({
+    mutationFn: (snap) => apiPost(`/api/vm/${selected.name}/snapshot/${encodeURIComponent(snap)}/revert`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-snapshots", selected?.name], refetchType: "active" }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
+  const deleteSnapshot = useMutation({
+    mutationFn: (snap) => apiDelete(`/api/vm/${selected.name}/snapshot/${encodeURIComponent(snap)}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-snapshots", selected?.name], refetchType: "active" }),
     onError: (err) => alert(err?.response?.data || err.message),
   });
 
@@ -232,7 +258,7 @@ export default function VMs() {
               </div>
 
               <div className="border-b border-white/10 mb-4 flex gap-3 text-sm">
-                {["console", "hardware", "network", "options"].map((t) => (
+                {["console", "hardware", "network", "snapshots", "options"].map((t) => (
                   <button
                     key={t}
                     onClick={() => setTab(t)}
@@ -245,6 +271,8 @@ export default function VMs() {
                         ? "Hardware"
                         : t === "network"
                           ? "Netzwerk"
+                          : t === "snapshots"
+                            ? "Snapshots"
                           : "Optionen"}
                   </button>
                 ))}
@@ -500,6 +528,64 @@ export default function VMs() {
                 {tab === "options" && (
                   <div className="text-sm text-gray-200">
                     <p>Weitere VM-Optionen werden hier ergaenzt (Autostart, Labels, Notes).</p>
+                  </div>
+                )}
+                {tab === "snapshots" && (
+                  <div className="text-sm text-gray-200 space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-end gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-400">Snapshot-Name (optional)</label>
+                        <input
+                          value={snapshotName}
+                          onChange={(e) => setSnapshotName(e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                          placeholder="snap-1"
+                        />
+                      </div>
+                      <button
+                        onClick={() => createSnapshot.mutate(snapshotName || undefined)}
+                        disabled={createSnapshot.isPending}
+                        className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-sm disabled:opacity-50"
+                      >
+                        {createSnapshot.isPending ? "Erzeuge..." : "Snapshot anlegen"}
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {snapshots.data?.length ? (
+                        snapshots.data.map((s) => (
+                          <div
+                            key={s.name}
+                            className={`flex items-center justify-between bg-black/20 px-3 py-2 rounded border ${s.current ? "border-emerald-400/60" : "border-white/10"}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono">{s.name}</span>
+                              {s.current && <span className="text-xs text-emerald-300">current</span>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => revertSnapshot.mutate(s.name)}
+                                disabled={revertSnapshot.isPending}
+                                className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-xs disabled:opacity-50"
+                              >
+                                {revertSnapshot.isPending ? "..." : "Revert"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Snapshot ${s.name} loeschen?`)) deleteSnapshot.mutate(s.name);
+                                }}
+                                disabled={deleteSnapshot.isPending}
+                                className="px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 text-xs disabled:opacity-50"
+                              >
+                                {deleteSnapshot.isPending ? "..." : "Delete"}
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-400">Keine Snapshots.</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
