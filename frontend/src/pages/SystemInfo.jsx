@@ -13,6 +13,7 @@ export default function SystemInfo() {
     queryKey: ["updateStatus"],
     queryFn: () => apiGet("/api/system/update"),
     refetchInterval: 60000,
+    retry: 1,
   });
 
   if (isLoading)
@@ -37,6 +38,7 @@ export default function SystemInfo() {
         info={data}
         update={updateInfo.data}
         loading={updateInfo.isLoading}
+        updateError={updateInfo.isError ? (updateInfo.error?.response?.data || updateInfo.error?.message) : ""}
         onUpdated={() => {
           qc.invalidateQueries({ queryKey: ["updateStatus"] });
           qc.invalidateQueries({ queryKey: ["systemInfo"] });
@@ -112,13 +114,17 @@ const Stat = ({ label, value, accent = "text-white" }) => (
   </div>
 );
 
-const UpdateCard = ({ info, update, loading, onUpdated }) => {
-  const available = update?.update_available;
+const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
+  const available = update?.update_available === true;
   const currentVersion = info?.version || "unknown";
   const channel = info?.channel || "branch";
   const commitShort = (info?.commit || "").slice(0, 8);
   const latestVersion = update?.latest_version || "-";
-  const releaseNotes = update?.release_notes;
+  const rawNotes = update?.release_notes;
+  const releaseNotes =
+    typeof rawNotes === "string" && !rawNotes.trim().toLowerCase().startsWith("<html")
+      ? rawNotes
+      : "";
   const published = update?.latest_published
     ? new Date(update.latest_published).toLocaleString()
     : null;
@@ -200,6 +206,9 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
           </span>
         )}
         {running && <span className="text-sm text-slate-300">Update wird installiert...</span>}
+        {updateError && !running && (
+          <span className="text-sm text-rose-400">Update-Status-Fehler: {updateError}</span>
+        )}
         {runError && !waitingForRestart && (
           <span className="text-sm text-rose-400">
             {runError}
