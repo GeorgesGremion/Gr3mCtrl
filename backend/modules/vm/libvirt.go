@@ -1139,19 +1139,12 @@ func ListSnapshots(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	current, _ := dom.GetSnapshotCurrent(0)
-	currentName := ""
-	if current != nil {
-		currentName, _ = current.GetName()
-		current.Free()
-	}
-
 	resp := []snapshotInfo{}
 	for _, s := range snaps {
 		n, _ := s.GetName()
 		resp = append(resp, snapshotInfo{
 			Name:    n,
-			Current: n == currentName,
+			Current: false,
 		})
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -1233,7 +1226,7 @@ func RevertSnapshot(w http.ResponseWriter, r *http.Request) {
 	}
 	defer snap.Free()
 
-	if err := dom.RevertToSnapshot(snap, libvirt.DOMAIN_SNAPSHOT_REVERT_RUNNING|libvirt.DOMAIN_SNAPSHOT_REVERT_PAUSED); err != nil {
+	if err := snap.RevertToSnapshot(libvirt.DOMAIN_SNAPSHOT_REVERT_RUNNING | libvirt.DOMAIN_SNAPSHOT_REVERT_PAUSED); err != nil {
 		http.Error(w, "revert snapshot: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
