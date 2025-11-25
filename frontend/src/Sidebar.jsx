@@ -33,6 +33,7 @@ const GROUPS = [
     items: [
       { id: "pools", label: "Pools" },
       { id: "shares", label: "Shares" },
+      { id: "filemanager", label: "Dateimanager" },
       { id: "nas-users", label: "NAS Benutzer" },
       { id: "system", label: "System Info" },
       { id: "settings", label: "Settings" },
@@ -52,6 +53,7 @@ const PAGE_TO_GROUP = {
   isos: "vms",
   pools: "storage",
   shares: "storage",
+  filemanager: "storage",
   "nas-users": "storage",
   system: "storage",
   settings: "storage",

@@ -252,6 +252,13 @@ func RegisterRoutes() {
 		}
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
+
+	// File Manager (Shares)
+	http.HandleFunc("/api/fs/list", storage.FSList)
+	http.HandleFunc("/api/fs/download", storage.FSDownload)
+	http.HandleFunc("/api/fs/upload", storage.FSUpload)
+	http.HandleFunc("/api/fs/mkdir", storage.FSMkdir)
+	http.HandleFunc("/api/fs/delete", storage.FSDelete)
 	http.HandleFunc("/api/storage/pools", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:

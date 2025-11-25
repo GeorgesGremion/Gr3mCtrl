@@ -16,6 +16,7 @@ import Pools from "./pages/Pools";
 import Shares from "./pages/Shares";
 import NasUsers from "./pages/NasUsers";
 import TerminalModal from "./components/TerminalModal";
+import FileManager from "./pages/FileManager";
 
 export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
@@ -77,6 +78,10 @@ export default function App() {
       vmnets: {
         title: "Virtuelle Netzwerke",
         subtitle: "Libvirt-NAT/Bridge Netze im Blick.",
+      },
+      filemanager: {
+        title: "Dateimanager",
+        subtitle: "Shares durchsuchen, Dateien up- und downloaden.",
       },
       settings: {
         title: "Control Center",
@@ -191,6 +196,7 @@ export default function App() {
             {page === "volumes" && <Volumes />}
             {page === "pools" && <Pools />}
             {page === "shares" && <Shares />}
+            {page === "filemanager" && <FileManager />}
             {page === "nas-users" && <NasUsers />}
             {page === "vms" && <VMs />}
             {page === "isos" && <ISO />}
