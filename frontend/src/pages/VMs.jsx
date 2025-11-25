@@ -71,6 +71,7 @@ export default function VMs() {
   const [diskSize, setDiskSize] = useState(10);
   const [diskPool, setDiskPool] = useState("");
   const [snapshotName, setSnapshotName] = useState("");
+  const [logAuto, setLogAuto] = useState(false);
 
   const { data: selectedDetail } = useQuery({
     queryKey: ["vm-detail", selected?.name],
@@ -131,6 +132,13 @@ export default function VMs() {
     queryFn: () => apiGet(`/api/vm/${selected.name}/snapshots`),
     enabled: !!selected?.name,
     refetchInterval: 8000,
+  });
+
+  const vmLogs = useQuery({
+    queryKey: ["vm-logs", selected?.name],
+    queryFn: () => apiGet(`/api/vm/${selected.name}/logs?lines=300`),
+    enabled: !!selected?.name,
+    refetchInterval: logAuto ? 5000 : false,
   });
 
   const createSnapshot = useMutation({
@@ -258,7 +266,7 @@ export default function VMs() {
               </div>
 
               <div className="border-b border-white/10 mb-4 flex gap-3 text-sm">
-                {["console", "hardware", "network", "snapshots", "options"].map((t) => (
+                {["console", "hardware", "network", "snapshots", "logs", "options"].map((t) => (
                   <button
                     key={t}
                     onClick={() => setTab(t)}
@@ -273,6 +281,8 @@ export default function VMs() {
                           ? "Netzwerk"
                           : t === "snapshots"
                             ? "Snapshots"
+                            : t === "logs"
+                              ? "Logs"
                           : "Optionen"}
                   </button>
                 ))}
@@ -585,6 +595,27 @@ export default function VMs() {
                       ) : (
                         <p className="text-gray-400">Keine Snapshots.</p>
                       )}
+                    </div>
+                  </div>
+                )}
+                {tab === "logs" && (
+                  <div className="text-sm text-gray-200 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => vmLogs.refetch()}
+                        disabled={vmLogs.isFetching}
+                        className="px-3 py-2 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-sm"
+                      >
+                        {vmLogs.isFetching ? "Lade..." : "Reload"}
+                      </button>
+                      <label className="flex items-center gap-2 text-xs text-gray-300">
+                        <input type="checkbox" checked={logAuto} onChange={(e) => setLogAuto(e.target.checked)} />
+                        Auto-Refresh 5s
+                      </label>
+                    </div>
+                    {vmLogs.isError && <p className="text-rose-400 text-sm">{vmLogs.error?.response?.data || vmLogs.error?.message}</p>}
+                    <div className="bg-black/40 border border-white/10 rounded-lg p-3 font-mono text-xs text-slate-200 whitespace-pre-wrap min-h-[50vh]">
+                      {vmLogs.data || (vmLogs.isFetching ? "Lade Logs..." : "Keine Logs geladen.")}
                     </div>
                   </div>
                 )}

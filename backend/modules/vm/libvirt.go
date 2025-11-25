@@ -1,14 +1,17 @@
 package vm
 
 import (
+	"bufio"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1526,4 +1529,46 @@ func buildDiskXMLForTarget(xmlDesc, target string) (string, string, error) {
 		return xml, disk.Source.File, nil
 	}
 	return "", "", fmt.Errorf("Disk %s nicht gefunden", target)
+}
+
+// GET /api/vm/{name}/logs?lines=300
+func GetVMLogs(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/logs")
+	name = strings.TrimSpace(name)
+	lines := 300
+	if l := strings.TrimSpace(r.URL.Query().Get("lines")); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 2000 {
+			lines = n
+		}
+	}
+
+	logPath := filepath.Join("/var/log/libvirt/qemu", fmt.Sprintf("%s.log", name))
+	data, err := tailFile(logPath, lines)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write(data)
+}
+
+func tailFile(path string, lines int) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var buf []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		buf = append(buf, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil && err != io.EOF {
+		return nil, err
+	}
+	if len(buf) > lines {
+		buf = buf[len(buf)-lines:]
+	}
+	return []byte(strings.Join(buf, "\n")), nil
 }

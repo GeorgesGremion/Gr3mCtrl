@@ -215,6 +215,10 @@ func RegisterRoutes() {
 			vm.DeleteSnapshot(w, r)
 			return
 		}
+		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/logs") {
+			vm.GetVMLogs(w, r)
+			return
+		}
 		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/media") {
 			vm.ChangeMedia(w, r)
 			return
