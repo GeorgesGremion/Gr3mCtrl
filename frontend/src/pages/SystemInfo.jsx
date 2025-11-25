@@ -115,16 +115,15 @@ const Stat = ({ label, value, accent = "text-white" }) => (
 );
 
 const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
+  const isHtml = (txt) => typeof txt === "string" && txt.trim().toLowerCase().includes("<html");
   const available = update?.update_available === true;
   const currentVersion = info?.version || "unknown";
   const channel = info?.channel || "branch";
   const commitShort = (info?.commit || "").slice(0, 8);
   const latestVersion = update?.latest_version || "-";
   const rawNotes = update?.release_notes;
-  const releaseNotes =
-    typeof rawNotes === "string" && !rawNotes.trim().toLowerCase().startsWith("<html")
-      ? rawNotes
-      : "";
+  const releaseNotes = typeof rawNotes === "string" && !isHtml(rawNotes) ? rawNotes : "";
+  const releaseNotesError = isHtml(rawNotes) ? "Update-Server liefert HTML (Proxy/502?)" : "";
   const published = update?.latest_published
     ? new Date(update.latest_published).toLocaleString()
     : null;
@@ -190,6 +189,8 @@ const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
         <p>Channel: {channel}</p>
         <p>Commit: {commitShort || "-"} {info?.build_date ? `(${info.build_date})` : ""}</p>
         {published && <p>Release: {latestVersion} - {published}</p>}
+        {updateError && <p className="text-rose-400">Update-Status: {updateError}</p>}
+        {releaseNotesError && <p className="text-rose-400">{releaseNotesError}</p>}
       </div>
       <div className="mt-4 flex items-center gap-3">
         {available ? (
