@@ -125,7 +125,7 @@ export default function Dashboard() {
               Update verfuegbar
             </p>
             <p className="text-lg font-semibold">
-              Neu: {updateInfo.latest_version || "-"} -> Jetzt installieren bei System Info
+              Neu: {updateInfo.latest_version || "-"} → Jetzt installieren bei System Info
             </p>
           </div>
           <button

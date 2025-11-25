@@ -254,21 +254,21 @@ func UpdateResources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.MemoryMB > 0 {
-		flags := libvirt.DOMAIN_AFFECT_CONFIG
+		memFlags := libvirt.DOMAIN_MEM_CONFIG
 		if applyLive {
-			flags |= libvirt.DOMAIN_AFFECT_LIVE
+			memFlags |= libvirt.DOMAIN_MEM_LIVE
 		}
-		if err := dom.SetMemoryFlags(uint64(req.MemoryMB)*1024, flags); err != nil {
+		if err := dom.SetMemoryFlags(uint64(req.MemoryMB)*1024, memFlags); err != nil {
 			http.Error(w, "set memory: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 	if req.VCPUs > 0 {
-		flags := libvirt.DOMAIN_VCPU_CONFIG
+		vcpuFlags := libvirt.DOMAIN_VCPU_CONFIG
 		if applyLive {
-			flags |= libvirt.DOMAIN_VCPU_LIVE
+			vcpuFlags |= libvirt.DOMAIN_VCPU_LIVE
 		}
-		if err := dom.SetVcpusFlags(uint32(req.VCPUs), flags); err != nil {
+		if err := dom.SetVcpusFlags(uint(req.VCPUs), vcpuFlags); err != nil {
 			http.Error(w, "set vcpus: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
