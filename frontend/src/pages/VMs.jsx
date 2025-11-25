@@ -55,7 +55,7 @@ export default function VMs() {
   });
 
   const remove = useMutation({
-    mutationFn: (name) => apiDelete(`/api/vm/${name}/delete`),
+    mutationFn: ({ name, keepDisks }) => apiDelete(`/api/vm/${name}/delete?keep_disks=${keepDisks ? "true" : "false"}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vms"] }),
   });
 
@@ -68,6 +68,8 @@ export default function VMs() {
   const [netSelection, setNetSelection] = useState("");
   const [netMac, setNetMac] = useState("");
   const [netModel, setNetModel] = useState("virtio");
+  const [diskSize, setDiskSize] = useState(10);
+  const [diskPool, setDiskPool] = useState("");
 
   const { data: selectedDetail } = useQuery({
     queryKey: ["vm-detail", selected?.name],
@@ -107,6 +109,18 @@ export default function VMs() {
 
   const detachNet = useMutation({
     mutationFn: (mac) => apiPost(`/api/vm/${selected.name}/net/detach`, { mac }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-detail", selected?.name], refetchType: "active" }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
+  const attachDisk = useMutation({
+    mutationFn: ({ size_gb, pool }) => apiPost(`/api/vm/${selected.name}/disk/attach`, { size_gb, pool }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-detail", selected?.name], refetchType: "active" }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
+  const detachDisk = useMutation({
+    mutationFn: ({ target, delete_file }) => apiPost(`/api/vm/${selected.name}/disk/detach`, { target, delete_file }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-detail", selected?.name], refetchType: "active" }),
     onError: (err) => alert(err?.response?.data || err.message),
   });
@@ -202,8 +216,9 @@ export default function VMs() {
                     label="Delete"
                     color="slate"
                     onClick={() => {
-                      if (confirm("VM loeschen? (undefine + Disk-Verzeichnis entfernen)")) {
-                        remove.mutate(selected.name);
+                      const keep = confirm("Disks behalten? OK = behalten, Cancel = Disks mit loeschen.");
+                      if (confirm("VM loeschen?")) {
+                        remove.mutate({ name: selected.name, keepDisks: keep });
                       }
                     }}
                   />
@@ -328,6 +343,79 @@ export default function VMs() {
                             className="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded disabled:opacity-50"
                           >
                             Auswerfen
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-4 space-y-3">
+                      <h4 className="text-base font-semibold">Disks</h4>
+                      <div className="space-y-2">
+                        {selectedDetail?.disks?.filter((d) => d.device === "disk").length ? (
+                          selectedDetail.disks
+                            .filter((d) => d.device === "disk")
+                            .map((disk) => (
+                              <div
+                                key={disk.target}
+                                className="flex items-center justify-between bg-black/20 px-3 py-2 rounded border border-white/10"
+                              >
+                                <div className="space-y-1">
+                                  <p>Target: {disk.target} ({disk.bus || "-"})</p>
+                                  <p className="text-xs text-gray-400 break-all">Source: {disk.source}</p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const del = confirm("Backing-File mit loeschen?");
+                                    detachDisk.mutate({ target: disk.target, delete_file: del });
+                                  }}
+                                  disabled={detachDisk.isPending}
+                                  className="px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 text-xs disabled:opacity-50"
+                                >
+                                  {detachDisk.isPending ? "..." : "Detach"}
+                                </button>
+                              </div>
+                            ))
+                        ) : (
+                          <p className="text-gray-400">Keine weiteren Disks.</p>
+                        )}
+                      </div>
+
+                      <div className="border-t border-white/10 pt-3 space-y-2">
+                        <h5 className="text-sm font-semibold">Disk anhaengen</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <label className="flex flex-col gap-1">
+                            <span className="text-gray-400 text-xs">Groesse (GB)</span>
+                            <input
+                              type="number"
+                              value={diskSize}
+                              onChange={(e) => setDiskSize(Number(e.target.value))}
+                              className="bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1">
+                            <span className="text-gray-400 text-xs">Pool (optional)</span>
+                            <select
+                              value={diskPool}
+                              onChange={(e) => setDiskPool(e.target.value)}
+                              className="bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                            >
+                              <option value="">Default (DataPath)</option>
+                              {pools?.map((p) => (
+                                <option key={p.name} value={p.name}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            onClick={() => {
+                              if (!diskSize || diskSize <= 0) return alert("Bitte Groesse > 0 angeben");
+                              attachDisk.mutate({ size_gb: diskSize, pool: diskPool || undefined });
+                            }}
+                            disabled={attachDisk.isPending}
+                            className="bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded text-sm disabled:opacity-50"
+                          >
+                            {attachDisk.isPending ? "Haenge an..." : "Disk anlegen + attach"}
                           </button>
                         </div>
                       </div>

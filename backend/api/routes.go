@@ -191,6 +191,14 @@ func RegisterRoutes() {
 			vm.DetachNetwork(w, r)
 			return
 		}
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/disk/attach") {
+			vm.AttachDisk(w, r)
+			return
+		}
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/disk/detach") {
+			vm.DetachDisk(w, r)
+			return
+		}
 		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/media") {
 			vm.ChangeMedia(w, r)
 			return

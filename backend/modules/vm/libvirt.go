@@ -53,6 +53,19 @@ type DomainDetail struct {
 	Disks     []DomainDisk    `json:"disks"`
 }
 
+type diskAttachRequest struct {
+	SizeGB uint   `json:"size_gb"`          // required if Path empty
+	Path   string `json:"path,omitempty"`   // optional existing qcow2
+	Pool   string `json:"pool,omitempty"`   // optional pool for new disk
+	Format string `json:"format,omitempty"` // default qcow2
+	Bus    string `json:"bus,omitempty"`    // default virtio
+}
+
+type diskDetachRequest struct {
+	Target     string `json:"target"`       // e.g. vdb
+	DeleteFile bool   `json:"delete_file"`  // remove backing file
+}
+
 // List virtual machines via libvirt (KVM)
 func ListDomains(w http.ResponseWriter, r *http.Request) {
 	conn, err := libvirt.NewConnect("qemu:///system")
@@ -570,6 +583,7 @@ func DeleteVM(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Name fehlt", http.StatusBadRequest)
 		return
 	}
+	keepDisks := r.URL.Query().Get("keep_disks") == "true"
 
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
@@ -588,7 +602,7 @@ func DeleteVM(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Undefine fehlgeschlagen: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if diskPath != "" {
+		if diskPath != "" && !keepDisks {
 			_ = os.RemoveAll(filepath.Dir(diskPath))
 		}
 	}
@@ -932,6 +946,159 @@ func findCDROMTarget(xmlDesc string) (dev, bus string, err error) {
 	return "", "", fmt.Errorf("cdrom not found")
 }
 
+// POST /api/vm/{name}/disk/attach
+func AttachDisk(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/disk/attach")
+	name = strings.TrimSpace(name)
+
+	var req diskAttachRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if req.Path == "" && req.SizeGB == 0 {
+		http.Error(w, "size_gb oder path erforderlich", http.StatusBadRequest)
+		return
+	}
+	if req.Format == "" {
+		req.Format = "qcow2"
+	}
+	if req.Bus == "" {
+		req.Bus = "virtio"
+	}
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	// Build disk path if needed
+	backingPath := strings.TrimSpace(req.Path)
+	if backingPath == "" {
+		cfg, err := settings.LoadConfig()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		vmDir := filepath.Join(cfg.DataPath, "vm", name)
+		if strings.TrimSpace(req.Pool) != "" {
+			if err := storage.EnsurePoolDirs(req.Pool); err != nil {
+				http.Error(w, "Pool nicht verfuegbar: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			vmDir = filepath.Join("/mnt/gr3mctrl/pools", req.Pool, "vm", name)
+		}
+		if err := os.MkdirAll(vmDir, 0o755); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		backingPath = filepath.Join(vmDir, fmt.Sprintf("%s-%d.qcow2", name, time.Now().Unix()))
+		if out, err := exec.Command("qemu-img", "create", "-f", req.Format, backingPath, fmt.Sprintf("%dG", req.SizeGB)).CombinedOutput(); err != nil {
+			http.Error(w, "qemu-img: "+string(out)+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	xmlDesc, err := dom.GetXMLDesc(0)
+	if err != nil {
+		http.Error(w, "get xml: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	targetDev := nextVirtioDev(xmlDesc)
+
+	diskXML := fmt.Sprintf(`
+<disk type='file' device='disk'>
+  <driver name='qemu' type='%s'/>
+  <source file='%s'/>
+  <target dev='%s' bus='%s'/>
+</disk>`, req.Format, backingPath, targetDev, req.Bus)
+
+	flags := libvirt.DOMAIN_DEVICE_MODIFY_CONFIG
+	active, _ := dom.IsActive()
+	if active {
+		flags |= libvirt.DOMAIN_DEVICE_MODIFY_LIVE
+	}
+
+	if err := dom.AttachDeviceFlags(diskXML, flags); err != nil {
+		http.Error(w, "attach disk: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok", "target": targetDev, "path": backingPath})
+}
+
+// POST /api/vm/{name}/disk/detach
+func DetachDisk(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/disk/detach")
+	name = strings.TrimSpace(name)
+
+	var req diskDetachRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if req.Target == "" {
+		http.Error(w, "target erforderlich", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	xmlDesc, err := dom.GetXMLDesc(0)
+	if err != nil {
+		http.Error(w, "get xml: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	diskXML, srcPath, err := buildDiskXMLForTarget(xmlDesc, req.Target)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	flags := libvirt.DOMAIN_DEVICE_MODIFY_CONFIG
+	active, _ := dom.IsActive()
+	if active {
+		flags |= libvirt.DOMAIN_DEVICE_MODIFY_LIVE
+	}
+
+	if err := dom.DetachDeviceFlags(diskXML, flags); err != nil {
+		http.Error(w, "detach disk: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if req.DeleteFile && srcPath != "" {
+		_ = os.Remove(srcPath)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok", "target": req.Target})
+}
+
 // POST /api/vm/{name}/net/attach {network:string, mac?:string, model?:string}
 func AttachNetwork(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
@@ -1118,4 +1285,68 @@ func buildInterfaceXMLForMAC(xmlDesc, mac string) (string, error) {
 </interface>`, netType, iface.Mac.Address, srcXML, iface.Model.Type), nil
 	}
 	return "", fmt.Errorf("interface mit MAC %s nicht gefunden", mac)
+}
+
+func nextVirtioDev(xmlDesc string) string {
+	used := map[string]bool{}
+	type Disk struct {
+		Target struct {
+			Dev string `xml:"dev,attr"`
+		} `xml:"target"`
+	}
+	type Dom struct {
+		Disks []Disk `xml:"devices>disk"`
+	}
+	var d Dom
+	_ = xml.Unmarshal([]byte(xmlDesc), &d)
+	for _, disk := range d.Disks {
+		used[strings.ToLower(disk.Target.Dev)] = true
+	}
+	// start from vdb (vda meist Systemdisk)
+	for _, dev := range []string{"vdb", "vdc", "vdd", "vde", "vdf", "vdg", "vdh", "vdi", "vdj", "vdk", "vdl", "vdm", "vdn", "vdo", "vdp", "vdq", "vdr", "vds", "vdt", "vdu", "vdv", "vdw", "vdx", "vdy", "vdz"} {
+		if !used[dev] {
+			return dev
+		}
+	}
+	return "vdb"
+}
+
+func buildDiskXMLForTarget(xmlDesc, target string) (string, string, error) {
+	type Disk struct {
+		Device string `xml:"device,attr"`
+		Source struct {
+			File string `xml:"file,attr"`
+		} `xml:"source"`
+		Target struct {
+			Dev string `xml:"dev,attr"`
+			Bus string `xml:"bus,attr"`
+		} `xml:"target"`
+	}
+	type Dom struct {
+		Disks []Disk `xml:"devices>disk"`
+	}
+	var d Dom
+	if err := xml.Unmarshal([]byte(xmlDesc), &d); err != nil {
+		return "", "", fmt.Errorf("parse xml: %w", err)
+	}
+	tgt := strings.ToLower(target)
+	for _, disk := range d.Disks {
+		if strings.ToLower(disk.Target.Dev) != tgt {
+			continue
+		}
+		if disk.Device != "disk" {
+			return "", "", fmt.Errorf("target %s ist kein Disk-Device", target)
+		}
+		bus := disk.Target.Bus
+		if bus == "" {
+			bus = "virtio"
+		}
+		xml := fmt.Sprintf(`
+<disk type='file' device='disk'>
+  <source file='%s'/>
+  <target dev='%s' bus='%s'/>
+</disk>`, disk.Source.File, disk.Target.Dev, bus)
+		return xml, disk.Source.File, nil
+	}
+	return "", "", fmt.Errorf("Disk %s nicht gefunden", target)
 }
