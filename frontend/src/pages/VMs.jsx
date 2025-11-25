@@ -63,6 +63,11 @@ export default function VMs() {
   const [selected, setSelected] = useState(null);
   const [tab, setTab] = useState("console");
   const [isoSelection, setIsoSelection] = useState("");
+  const [memInput, setMemInput] = useState(0);
+  const [vcpuInput, setVcpuInput] = useState(0);
+  const [netSelection, setNetSelection] = useState("");
+  const [netMac, setNetMac] = useState("");
+  const [netModel, setNetModel] = useState("virtio");
 
   const { data: selectedDetail } = useQuery({
     queryKey: ["vm-detail", selected?.name],
@@ -80,11 +85,44 @@ export default function VMs() {
     onError: (err) => alert("Fehler: " + (err.response?.data || err.message)),
   });
 
+  const updateResources = useMutation({
+    mutationFn: ({ memory_mb, vcpus }) =>
+      apiPost(`/api/vm/${selected.name}/resources`, { memory_mb, vcpus }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-detail", selected?.name] }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
+  const toggleAutostart = useMutation({
+    mutationFn: (enabled) => apiPost(`/api/vm/${selected.name}/autostart`, { enabled }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-detail", selected?.name] }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
+  const attachNet = useMutation({
+    mutationFn: ({ network, mac, model }) =>
+      apiPost(`/api/vm/${selected.name}/net/attach`, { network, mac, model }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-detail", selected?.name], refetchType: "active" }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
+  const detachNet = useMutation({
+    mutationFn: (mac) => apiPost(`/api/vm/${selected.name}/net/detach`, { mac }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vm-detail", selected?.name], refetchType: "active" }),
+    onError: (err) => alert(err?.response?.data || err.message),
+  });
+
   useEffect(() => {
     if (data && data.length > 0 && !selected) {
       setSelected(data[0]);
     }
   }, [data, selected]);
+
+  useEffect(() => {
+    if (selectedDetail) {
+      setMemInput(selectedDetail.memory_mb || 0);
+      setVcpuInput(selectedDetail.vcpus || 0);
+    }
+  }, [selectedDetail]);
 
   return (
     <div className="text-white min-h-full space-y-6">
@@ -210,10 +248,52 @@ export default function VMs() {
                 {tab === "hardware" && (
                   <div className="space-y-6 text-sm text-gray-200">
                     <div className="space-y-2">
-                      <p><span className="text-gray-400 w-24 inline-block">Name:</span> {selected.name}</p>
-                      <p><span className="text-gray-400 w-24 inline-block">UUID:</span> {selected.uuid}</p>
-                      <p><span className="text-gray-400 w-24 inline-block">ID:</span> {selected.id}</p>
-                      <p><span className="text-gray-400 w-24 inline-block">Status:</span> {selected.state}</p>
+                      <p><span className="text-gray-400 w-32 inline-block">Name:</span> {selected.name}</p>
+                      <p><span className="text-gray-400 w-32 inline-block">UUID:</span> {selected.uuid}</p>
+                      <p><span className="text-gray-400 w-32 inline-block">ID:</span> {selected.id}</p>
+                      <p><span className="text-gray-400 w-32 inline-block">Status:</span> {selected.state}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400 w-32 inline-block">Autostart:</span>
+                        <span className="text-emerald-300 text-xs">{selectedDetail?.autostart ? "aktiv" : "aus"}</span>
+                        <button
+                          onClick={() => toggleAutostart.mutate(!selectedDetail?.autostart)}
+                          className="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-xs"
+                          disabled={toggleAutostart.isPending}
+                        >
+                          {toggleAutostart.isPending ? "..." : selectedDetail?.autostart ? "Deaktivieren" : "Aktivieren"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-4">
+                      <h4 className="text-base font-semibold mb-3">Ressourcen</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                        <label className="flex flex-col gap-1">
+                          <span className="text-gray-400 text-xs">RAM (MiB)</span>
+                          <input
+                            type="number"
+                            value={memInput}
+                            onChange={(e) => setMemInput(Number(e.target.value))}
+                            className="bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                          <span className="text-gray-400 text-xs">vCPUs</span>
+                          <input
+                            type="number"
+                            value={vcpuInput}
+                            onChange={(e) => setVcpuInput(Number(e.target.value))}
+                            className="bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                          />
+                        </label>
+                        <button
+                          onClick={() => updateResources.mutate({ memory_mb: memInput, vcpus: vcpuInput })}
+                          disabled={updateResources.isPending}
+                          className="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded text-sm disabled:opacity-50"
+                        >
+                          {updateResources.isPending ? "Speichere..." : "Anwenden"}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="border-t border-white/10 pt-4">
@@ -255,8 +335,78 @@ export default function VMs() {
                   </div>
                 )}
                 {tab === "network" && (
-                  <div className="text-sm text-gray-200">
-                    <p>Netzwerkdetails sind noch nicht verfuegbar (XML-Auswertung fehlt).</p>
+                  <div className="text-sm text-gray-200 space-y-4">
+                    <div>
+                      <h4 className="text-base font-semibold mb-2">Interfaces</h4>
+                      <div className="space-y-2">
+                        {selectedDetail?.networks?.length ? (
+                          selectedDetail.networks.map((iface) => (
+                            <div
+                              key={iface.mac + iface.target}
+                              className="flex items-center justify-between bg-black/20 px-3 py-2 rounded border border-white/10"
+                            >
+                              <div className="space-y-1">
+                                <p>MAC: {iface.mac}</p>
+                                <p>Typ: {iface.type} / Quelle: {iface.source || "-"}</p>
+                                <p>Target: {iface.target || "-"} / Model: {iface.model || "-"}</p>
+                              </div>
+                              <button
+                                onClick={() => detachNet.mutate(iface.mac)}
+                                disabled={detachNet.isPending}
+                                className="px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 text-xs disabled:opacity-50"
+                              >
+                                {detachNet.isPending ? "..." : "Detach"}
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-gray-400">Keine Interfaces erkannt.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-3 space-y-2">
+                      <h4 className="text-base font-semibold">Interface anhaengen</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <select
+                          value={netSelection}
+                          onChange={(e) => setNetSelection(e.target.value)}
+                          className="bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                        >
+                          <option value="">Netzwerk waehlen</option>
+                          {nets?.map((n) => (
+                            <option key={n.name + n.kind} value={n.kind === "bridge" ? `br:${n.name}` : n.name}>
+                              {n.name} {n.kind === "bridge" ? "(bridge)" : "(libvirt)"}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={netMac}
+                          onChange={(e) => setNetMac(e.target.value)}
+                          placeholder="MAC optional"
+                          className="bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                        />
+                        <select
+                          value={netModel}
+                          onChange={(e) => setNetModel(e.target.value)}
+                          className="bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                        >
+                          <option value="virtio">virtio</option>
+                          <option value="e1000">e1000</option>
+                          <option value="rtl8139">rtl8139</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (!netSelection) return alert("Bitte Netzwerk auswaehlen");
+                          attachNet.mutate({ network: netSelection, mac: netMac || undefined, model: netModel || "virtio" });
+                        }}
+                        disabled={attachNet.isPending}
+                        className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-sm disabled:opacity-50"
+                      >
+                        {attachNet.isPending ? "Haenge an..." : "Attach"}
+                      </button>
+                    </div>
                   </div>
                 )}
                 {tab === "options" && (

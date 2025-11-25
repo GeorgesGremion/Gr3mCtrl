@@ -26,6 +26,33 @@ type DomainInfo struct {
 	Active bool   `json:"active"`
 }
 
+type DomainNetwork struct {
+	Type   string `json:"type"`   // network | bridge | direct
+	Source string `json:"source"` // network name or bridge device
+	Mac    string `json:"mac"`
+	Model  string `json:"model"`
+	Target string `json:"target"`
+}
+
+type DomainDisk struct {
+	Device   string `json:"device"` // disk | cdrom
+	Source   string `json:"source"`
+	Target   string `json:"target"`
+	Bus      string `json:"bus"`
+	ReadOnly bool   `json:"read_only"`
+}
+
+type DomainDetail struct {
+	Name      string          `json:"name"`
+	Console   map[string]any  `json:"console"`
+	Cdrom     string          `json:"cdrom"`
+	MemoryMB  uint64          `json:"memory_mb"`
+	VCPUs     uint            `json:"vcpus"`
+	Autostart bool            `json:"autostart"`
+	Networks  []DomainNetwork `json:"networks"`
+	Disks     []DomainDisk    `json:"disks"`
+}
+
 // List virtual machines via libvirt (KVM)
 func ListDomains(w http.ResponseWriter, r *http.Request) {
 	conn, err := libvirt.NewConnect("qemu:///system")
@@ -145,6 +172,110 @@ func DomainAction(w http.ResponseWriter, r *http.Request) {
 		"status": "ok",
 		"action": action,
 	})
+}
+
+// POST /api/vm/{name}/autostart {enabled: bool}
+func SetAutostart(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/autostart")
+	name = strings.TrimSpace(name)
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain lookup: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+	if err := dom.SetAutostart(req.Enabled); err != nil {
+		http.Error(w, "set autostart: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok", "autostart": req.Enabled})
+}
+
+// POST /api/vm/{name}/resources {memory_mb, vcpus, live:bool}
+func UpdateResources(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/resources")
+	name = strings.TrimSpace(name)
+
+	var req struct {
+		MemoryMB uint  `json:"memory_mb"`
+		VCPUs    uint  `json:"vcpus"`
+		Live     *bool `json:"live,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if req.MemoryMB == 0 && req.VCPUs == 0 {
+		http.Error(w, "memory_mb oder vcpus erforderlich", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain lookup: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	active, _ := dom.IsActive()
+	applyLive := active
+	if req.Live != nil {
+		applyLive = *req.Live
+	}
+
+	if req.MemoryMB > 0 {
+		flags := libvirt.DOMAIN_AFFECT_CONFIG
+		if applyLive {
+			flags |= libvirt.DOMAIN_AFFECT_LIVE
+		}
+		if err := dom.SetMemoryFlags(uint64(req.MemoryMB)*1024, flags); err != nil {
+			http.Error(w, "set memory: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	if req.VCPUs > 0 {
+		flags := libvirt.DOMAIN_VCPU_CONFIG
+		if applyLive {
+			flags |= libvirt.DOMAIN_VCPU_LIVE
+		}
+		if err := dom.SetVcpusFlags(uint32(req.VCPUs), flags); err != nil {
+			http.Error(w, "set vcpus: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok", "memory_mb": req.MemoryMB, "vcpus": req.VCPUs})
 }
 
 // Health check for libvirt availability
@@ -312,49 +443,118 @@ func GetDomain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type Graphics struct {
-		Type   string `xml:"type,attr"`
-		Port   int    `xml:"port,attr"`
-		Listen struct {
-			Address string `xml:"address,attr"`
-		} `xml:"listen"`
-	}
-	type Source struct {
-		File string `xml:"file,attr"`
-	}
-	type Disk struct {
-		Device string `xml:"device,attr"`
-		Source Source `xml:"source"`
-	}
-	type DomainXML struct {
-		XMLName  xml.Name   `xml:"domain"`
-		Graphics []Graphics `xml:"devices>graphics"`
-		Disks    []Disk     `xml:"devices>disk"`
-	}
+type Graphics struct {
+	Type   string `xml:"type,attr"`
+	Port   int    `xml:"port,attr"`
+	Listen struct {
+		Address string `xml:"address,attr"`
+	} `xml:"listen"`
+}
+type Source struct {
+	File string `xml:"file,attr"`
+}
+type Disk struct {
+	Device string `xml:"device,attr"`
+	Source Source `xml:"source"`
+	Target struct {
+		Dev string `xml:"dev,attr"`
+		Bus string `xml:"bus,attr"`
+	} `xml:"target"`
+	ReadOnly *struct{} `xml:"readonly"`
+}
+type Interface struct {
+	XMLName xml.Name `xml:"interface"`
+	Type    string   `xml:"type,attr"`
+	Mac     struct {
+		Address string `xml:"address,attr"`
+	} `xml:"mac"`
+	Source struct {
+		Network string `xml:"network,attr"`
+		Bridge  string `xml:"bridge,attr"`
+		Dev     string `xml:"dev,attr"`
+	} `xml:"source"`
+	Target struct {
+		Dev string `xml:"dev,attr"`
+	} `xml:"target"`
+	Model struct {
+		Type string `xml:"type,attr"`
+	} `xml:"model"`
+}
 
-	var dxml DomainXML
-	_ = xml.Unmarshal([]byte(xmlDesc), &dxml)
+type DomainXML struct {
+	XMLName   xml.Name    `xml:"domain"`
+	Graphics  []Graphics  `xml:"devices>graphics"`
+	Disks     []Disk      `xml:"devices>disk"`
+	Interfaces []Interface `xml:"devices>interface"`
+}
 
-	console := map[string]interface{}{}
-	if len(dxml.Graphics) > 0 {
-		g := dxml.Graphics[0]
-		console["type"] = g.Type
-		console["port"] = g.Port
-		console["address"] = g.Listen.Address
+var dxml DomainXML
+_ = xml.Unmarshal([]byte(xmlDesc), &dxml)
+
+console := map[string]interface{}{}
+if len(dxml.Graphics) > 0 {
+	g := dxml.Graphics[0]
+	console["type"] = g.Type
+	console["port"] = g.Port
+	console["address"] = g.Listen.Address
+}
+
+var cdrom string
+disks := []DomainDisk{}
+for _, d := range dxml.Disks {
+	if d.Device == "cdrom" {
+		cdrom = d.Source.File
 	}
+	disks = append(disks, DomainDisk{
+		Device:   d.Device,
+		Source:   d.Source.File,
+		Target:   d.Target.Dev,
+		Bus:      d.Target.Bus,
+		ReadOnly: d.ReadOnly != nil,
+	})
+}
 
-	var cdrom string
-	for _, d := range dxml.Disks {
-		if d.Device == "cdrom" {
-			cdrom = d.Source.File
-			break
+nets := []DomainNetwork{}
+for _, iface := range dxml.Interfaces {
+	source := iface.Source.Network
+	if source == "" {
+		source = iface.Source.Bridge
+	}
+	netType := iface.Type
+	if netType == "" {
+		if iface.Source.Bridge != "" {
+			netType = "bridge"
+		} else {
+			netType = "network"
 		}
 	}
+	nets = append(nets, DomainNetwork{
+		Type:   netType,
+		Source: source,
+		Mac:    iface.Mac.Address,
+		Model:  iface.Model.Type,
+		Target: iface.Target.Dev,
+	})
+}
 
-	resp := map[string]interface{}{
-		"name":    name,
-		"console": console,
-		"cdrom":   cdrom,
+info, _ := dom.GetInfo()
+memMB := uint64(0)
+vcpus := uint(0)
+if info != nil {
+	memMB = uint64(info.Memory) / 1024
+	vcpus = uint(info.NrVirtCpu)
+}
+autostart, _ := dom.GetAutostart()
+
+	resp := DomainDetail{
+		Name:      name,
+		Console:   console,
+		Cdrom:     cdrom,
+		MemoryMB:  memMB,
+		VCPUs:     vcpus,
+		Autostart: autostart,
+		Networks:  nets,
+		Disks:     disks,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -730,4 +930,192 @@ func findCDROMTarget(xmlDesc string) (dev, bus string, err error) {
 		}
 	}
 	return "", "", fmt.Errorf("cdrom not found")
+}
+
+// POST /api/vm/{name}/net/attach {network:string, mac?:string, model?:string}
+func AttachNetwork(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/net/attach")
+	name = strings.TrimSpace(name)
+
+	var req struct {
+		Network string `json:"network"` // "default" or "br:dev"
+		Mac     string `json:"mac"`
+		Model   string `json:"model"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if req.Network == "" {
+		http.Error(w, "network required", http.StatusBadRequest)
+		return
+	}
+	if req.Model == "" {
+		req.Model = "virtio"
+	}
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	netType := "network"
+	source := req.Network
+	if strings.HasPrefix(req.Network, "br:") {
+		netType = "bridge"
+		source = strings.TrimPrefix(req.Network, "br:")
+	}
+	macXML := ""
+	if strings.TrimSpace(req.Mac) != "" {
+		macXML = fmt.Sprintf("<mac address='%s'/>", strings.TrimSpace(req.Mac))
+	}
+
+	var srcXML string
+	if netType == "bridge" {
+		srcXML = fmt.Sprintf("<source bridge='%s'/>", source)
+	} else {
+		srcXML = fmt.Sprintf("<source network='%s'/>", source)
+	}
+
+	ifaceXML := fmt.Sprintf(`
+<interface type='%s'>
+  %s
+  %s
+  <model type='%s'/>
+</interface>`, netType, macXML, srcXML, req.Model)
+
+	flags := libvirt.DOMAIN_DEVICE_MODIFY_CONFIG
+	active, _ := dom.IsActive()
+	if active {
+		flags |= libvirt.DOMAIN_DEVICE_MODIFY_LIVE
+	}
+
+	if err := dom.AttachDeviceFlags(ifaceXML, flags); err != nil {
+		http.Error(w, "attach interface: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+}
+
+// POST /api/vm/{name}/net/detach {mac:string}
+func DetachNetwork(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/vm/")
+	name = strings.TrimSuffix(name, "/net/detach")
+	name = strings.TrimSpace(name)
+
+	var req struct {
+		Mac string `json:"mac"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	mac := strings.ToLower(strings.TrimSpace(req.Mac))
+	if mac == "" {
+		http.Error(w, "mac required", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		http.Error(w, "libvirt connect: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(name)
+	if err != nil {
+		http.Error(w, "domain not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+	defer dom.Free()
+
+	xmlDesc, err := dom.GetXMLDesc(0)
+	if err != nil {
+		http.Error(w, "get xml: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	ifaceXML, err := buildInterfaceXMLForMAC(xmlDesc, mac)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	flags := libvirt.DOMAIN_DEVICE_MODIFY_CONFIG
+	active, _ := dom.IsActive()
+	if active {
+		flags |= libvirt.DOMAIN_DEVICE_MODIFY_LIVE
+	}
+
+	if err := dom.DetachDeviceFlags(ifaceXML, flags); err != nil {
+		http.Error(w, "detach interface: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+}
+
+func buildInterfaceXMLForMAC(xmlDesc, mac string) (string, error) {
+	type Iface struct {
+		XMLName xml.Name `xml:"interface"`
+		Type    string   `xml:"type,attr"`
+		Mac     struct {
+			Address string `xml:"address,attr"`
+		} `xml:"mac"`
+		Source struct {
+			Network string `xml:"network,attr"`
+			Bridge  string `xml:"bridge,attr"`
+			Dev     string `xml:"dev,attr"`
+		} `xml:"source"`
+		Model struct {
+			Type string `xml:"type,attr"`
+		} `xml:"model"`
+	}
+	type Domain struct {
+		Interfaces []Iface `xml:"devices>interface"`
+	}
+	var d Domain
+	if err := xml.Unmarshal([]byte(xmlDesc), &d); err != nil {
+		return "", fmt.Errorf("parse xml: %w", err)
+	}
+	for _, iface := range d.Interfaces {
+		if strings.ToLower(iface.Mac.Address) != mac {
+			continue
+		}
+		netType := iface.Type
+		if netType == "" {
+			if iface.Source.Bridge != "" {
+				netType = "bridge"
+			} else {
+				netType = "network"
+			}
+		}
+		var srcXML string
+		if iface.Source.Bridge != "" {
+			srcXML = fmt.Sprintf("<source bridge='%s'/>", iface.Source.Bridge)
+		} else if iface.Source.Network != "" {
+			srcXML = fmt.Sprintf("<source network='%s'/>", iface.Source.Network)
+		} else if iface.Source.Dev != "" {
+			srcXML = fmt.Sprintf("<source dev='%s'/>", iface.Source.Dev)
+		}
+		return fmt.Sprintf(`
+<interface type='%s'>
+  <mac address='%s'/>
+  %s
+  <model type='%s'/>
+</interface>`, netType, iface.Mac.Address, srcXML, iface.Model.Type), nil
+	}
+	return "", fmt.Errorf("interface mit MAC %s nicht gefunden", mac)
 }

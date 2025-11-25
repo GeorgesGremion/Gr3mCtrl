@@ -175,6 +175,22 @@ func RegisterRoutes() {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
 	http.HandleFunc("/api/vm/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/autostart") {
+			vm.SetAutostart(w, r)
+			return
+		}
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/resources") {
+			vm.UpdateResources(w, r)
+			return
+		}
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/net/attach") {
+			vm.AttachNetwork(w, r)
+			return
+		}
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/net/detach") {
+			vm.DetachNetwork(w, r)
+			return
+		}
 		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/media") {
 			vm.ChangeMedia(w, r)
 			return
