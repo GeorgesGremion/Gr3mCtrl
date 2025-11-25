@@ -231,6 +231,20 @@ func DeleteShare(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted", "name": name})
 }
 
+// POST /api/storage/shares/reload
+func ReloadShares(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := RebuildSambaConfig(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
 // PUT /api/storage/share/{name}/move
 // Payload: {\"pool\": \"newPool\", \"path\": \"optional override\"}
 func MoveShare(w http.ResponseWriter, r *http.Request) {

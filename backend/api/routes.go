@@ -281,6 +281,13 @@ func RegisterRoutes() {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	http.HandleFunc("/api/storage/shares/reload", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			storage.ReloadShares(w, r)
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
 	http.HandleFunc("/api/storage/share/", func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/move") && r.Method == http.MethodPut:
@@ -332,6 +339,7 @@ func RegisterRoutes() {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	http.HandleFunc("/api/system/service/restart", system.RestartService)
 	// Settings
 	http.HandleFunc("/api/settings", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {

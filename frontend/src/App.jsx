@@ -22,6 +22,10 @@ export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
   const [showShell, setShowShell] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [showQuick, setShowQuick] = useState(false);
+  const [quickMessage, setQuickMessage] = useState("");
+  const [quickError, setQuickError] = useState("");
+  const [isoPool, setIsoPool] = useState("");
   useEffect(() => {
     document.title = "Gr3mCtrl";
   }, []);
@@ -30,6 +34,10 @@ export default function App() {
     queryKey: ["updateStatus"],
     queryFn: () => apiGet("/api/system/update"),
     refetchInterval: 60000,
+  });
+  const poolsQuery = useQuery({
+    queryKey: ["pools"],
+    queryFn: () => apiGet("/api/storage/pools"),
   });
   const pageMeta = useMemo(
     () => ({
@@ -181,7 +189,10 @@ export default function App() {
             >
               Shell
             </button>
-            <button className="px-4 py-2 rounded-full border border-white/20 text-sm text-white/80 hover:border-white transition">
+            <button
+              onClick={() => setShowQuick(true)}
+              className="px-4 py-2 rounded-full border border-white/20 text-sm text-white/80 hover:border-white transition"
+            >
               Quick Action
             </button>
             <button
@@ -363,6 +374,133 @@ export default function App() {
                     {item.label}
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showQuick && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900/95 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Quick Actions</p>
+                <button
+                  onClick={() => {
+                    setShowQuick(false);
+                    setQuickMessage("");
+                    setQuickError("");
+                  }}
+                  className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
+                >
+                  Schliessen
+                </button>
+              </div>
+              <div className="p-4 space-y-3 text-sm text-white">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <button
+                    onClick={async () => {
+                      setQuickError("");
+                      setQuickMessage("Backend wird neu gestartet...");
+                      try {
+                        await apiPost("/api/system/service/restart", { service: "gr3mctrl-backend.service" });
+                        setQuickMessage("Backend restart ausgelöst.");
+                      } catch (e) {
+                        setQuickError(e?.response?.data || e.message);
+                      }
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left"
+                  >
+                    Backend neu starten
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setQuickError("");
+                      setQuickMessage("Gateway wird neu gestartet...");
+                      try {
+                        await apiPost("/api/system/service/restart", { service: "gr3mctrl-gateway.service" });
+                        setQuickMessage("Gateway restart ausgelöst.");
+                      } catch (e) {
+                        setQuickError(e?.response?.data || e.message);
+                      }
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left"
+                  >
+                    Gateway neu starten
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setQuickError("");
+                      setQuickMessage("Shares werden neu geladen...");
+                      try {
+                        await apiPost("/api/storage/shares/reload", {});
+                        setQuickMessage("Shares neu eingelesen.");
+                      } catch (e) {
+                        setQuickError(e?.response?.data || e.message);
+                      }
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left"
+                  >
+                    Shares neu einlesen
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setQuickError("");
+                      setQuickMessage("Pruefe Updates...");
+                      try {
+                        const info = await apiGet("/api/system/update");
+                        setQuickMessage(info?.update_available ? `Update verfuegbar: ${info.latest_version || "-"}` : "System ist aktuell");
+                      } catch (e) {
+                        setQuickError(e?.response?.data || e.message);
+                      }
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left"
+                  >
+                    Update prüfen
+                  </button>
+                </div>
+
+                <div className="border-t border-white/10 pt-3 space-y-2">
+                  <p className="text-xs text-slate-300">ISO hochladen (Default-Pool oder auswählen):</p>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <select
+                      value={isoPool}
+                      onChange={(e) => setIsoPool(e.target.value)}
+                      className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">Default</option>
+                      {poolsQuery.data?.map((p) => (
+                        <option key={p.name} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="file"
+                      accept=".iso"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setQuickMessage("ISO Upload läuft...");
+                        setQuickError("");
+                        try {
+                          const form = new FormData();
+                          form.append("iso", file);
+                          if (isoPool) form.append("pool", isoPool);
+                          const res = await fetch("/api/storage/isos", { method: "POST", body: form });
+                          if (!res.ok) {
+                            const msg = await res.text();
+                            throw new Error(msg);
+                          }
+                          setQuickMessage("ISO Upload abgeschlossen.");
+                        } catch (e) {
+                          setQuickError(e.message);
+                        }
+                      }}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                {quickMessage && <p className="text-sm text-emerald-300">{quickMessage}</p>}
+                {quickError && <p className="text-sm text-rose-400">{quickError}</p>}
               </div>
             </div>
           </div>
