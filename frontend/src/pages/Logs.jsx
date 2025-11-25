@@ -23,8 +23,7 @@ export default function Logs() {
         throw new Error(msg || `HTTP ${res.status}`);
       }
       const text = await res.text();
-      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0).reverse().join("\n");
-      setLogs(lines);
+      setLogs(text);
     } catch (e) {
       setError(e.message);
     } finally {

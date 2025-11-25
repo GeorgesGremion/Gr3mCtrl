@@ -13,7 +13,7 @@ func GetLogs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "service not allowed", http.StatusBadRequest)
 		return
 	}
-	cmd := exec.Command("journalctl", "-u", svc, "-n", "300", "--no-pager")
+	cmd := exec.Command("journalctl", "-u", svc, "-n", "300", "-r", "--no-pager")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		http.Error(w, string(out)+err.Error(), http.StatusInternalServerError)
