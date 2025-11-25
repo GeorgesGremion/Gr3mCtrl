@@ -8,6 +8,7 @@ export default function FileManager() {
   const [path, setPath] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const { data: shares } = useQuery({
     queryKey: ["shares"],
@@ -168,9 +169,7 @@ export default function FileManager() {
                       </a>
                     )}
                     <button
-                      onClick={() => {
-                        if (confirm(`"${item.name}" löschen?`)) del.mutate(item.name);
-                      }}
+                      onClick={() => setConfirmDelete(item.name)}
                       className="px-2 py-1 rounded bg-rose-600 hover:bg-rose-500"
                     >
                       Delete
@@ -184,6 +183,53 @@ export default function FileManager() {
           <p className="text-gray-400">Keine Einträge.</p>
         )}
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-rose-950 border border-rose-500/60 rounded-2xl w-full max-w-lg shadow-2xl text-white">
+            <div className="px-5 py-4 border-b border-rose-800 flex justify-between items-center">
+              <div>
+                <p className="text-sm uppercase tracking-[0.25em] text-rose-200">Achtung</p>
+                <p className="text-base font-semibold">Datei wird gelöscht</p>
+              </div>
+              <button
+                className="text-rose-200 hover:text-white"
+                onClick={() => setConfirmDelete(null)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-rose-100">
+                Du bist im Begriff, folgende Datei/Ordner zu löschen:
+              </p>
+              <div className="bg-black/30 rounded-lg px-3 py-2 border border-rose-800 text-sm font-mono">
+                {confirmDelete}
+              </div>
+              <p className="text-xs text-rose-200">
+                Dieser Vorgang kann nicht rückgängig gemacht werden.
+              </p>
+            </div>
+            <div className="px-5 py-3 border-t border-rose-800 flex justify-end gap-2">
+              <button
+                className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-sm"
+                onClick={() => setConfirmDelete(null)}
+              >
+                Abbrechen
+              </button>
+              <button
+                className="px-3 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-sm"
+                onClick={() => {
+                  del.mutate(confirmDelete);
+                  setConfirmDelete(null);
+                }}
+              >
+                Ja, löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

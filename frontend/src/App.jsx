@@ -17,6 +17,8 @@ import Shares from "./pages/Shares";
 import NasUsers from "./pages/NasUsers";
 import TerminalModal from "./components/TerminalModal";
 import FileManager from "./pages/FileManager";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "./api";
 
 export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
@@ -25,6 +27,11 @@ export default function App() {
     document.title = "Gr3mCtrl";
   }, []);
   const placeholderPages = useMemo(() => ["settings"], []);
+  const updateInfo = useQuery({
+    queryKey: ["updateStatus"],
+    queryFn: () => apiGet("/api/system/update"),
+    refetchInterval: 60000,
+  });
   const pageMeta = useMemo(
     () => ({
       dashboard: {
@@ -181,6 +188,18 @@ export default function App() {
             <button className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-sm font-semibold shadow-lg shadow-purple-500/30">
               Neue Resource
             </button>
+            {updateInfo.data?.update_available && (
+              <button
+                onClick={() => {
+                  setPage("system");
+                  window.location.hash = "#/system";
+                  window.dispatchEvent(new HashChangeEvent("hashchange"));
+                }}
+                className="px-4 py-2 rounded-full border border-amber-400 text-amber-200 bg-amber-500/20 text-sm font-semibold"
+              >
+                Update verfuegbar: {updateInfo.data?.latest_version || "-"}
+              </button>
+            )}
           </div>
         </header>
 
