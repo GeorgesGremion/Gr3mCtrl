@@ -116,15 +116,19 @@ const Stat = ({ label, value, accent = "text-white" }) => (
 
 const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
   const isHtml = (txt) => typeof txt === "string" && txt.toLowerCase().includes("<html");
-  const available = update?.update_available === true;
+  const badPayload = typeof update === "string" || isHtml(JSON.stringify(update || ""));
+  const available = !badPayload && update?.update_available === true;
   const currentVersion = info?.version || "unknown";
   const channel = info?.channel || "branch";
   const commitShort = (info?.commit || "").slice(0, 8);
-  const latestVersion = update?.latest_version || "-";
-  const rawNotes = update?.release_notes;
+  const latestVersion = badPayload ? "-" : update?.latest_version || "-";
+  const rawNotes = badPayload ? "" : update?.release_notes;
   const releaseNotes = typeof rawNotes === "string" && !isHtml(rawNotes) ? rawNotes : "";
   const releaseNotesError = isHtml(rawNotes) ? "Update-Server liefert HTML (Proxy/502?)" : "";
-  const sanitizedUpdateError = updateError && isHtml(updateError) ? "Update-Status liefert HTML (Proxy/502?)" : updateError;
+  const sanitizedUpdateError =
+    badPayload || (updateError && isHtml(updateError))
+      ? "Update-Status nicht verfügbar (Proxy/502?)"
+      : updateError;
   const published = update?.latest_published
     ? new Date(update.latest_published).toLocaleString()
     : null;
