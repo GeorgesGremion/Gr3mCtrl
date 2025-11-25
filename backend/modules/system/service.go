@@ -2,6 +2,7 @@ package system
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -10,6 +11,15 @@ import (
 var allowedServices = map[string]bool{
 	"gr3mctrl-backend.service": true,
 	"gr3mctrl-gateway.service": true,
+}
+
+func scheduleRestart(service string) error {
+	// schedule restart in 1s via systemd-run to avoid killing current process before response
+	cmd := exec.Command("systemd-run", "--unit", "gr3mctrl-restart-"+strings.ReplaceAll(service, ".service", ""), "--on-active=1", "systemctl", "restart", service)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
+	}
+	return nil
 }
 
 // POST /api/system/service/restart {service:"gr3mctrl-backend.service"}
@@ -30,9 +40,9 @@ func RestartService(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "service not allowed", http.StatusBadRequest)
 		return
 	}
-	cmd := exec.Command("systemctl", "restart", svc)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		http.Error(w, string(out)+err.Error(), http.StatusInternalServerError)
+
+	if err := scheduleRestart(svc); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

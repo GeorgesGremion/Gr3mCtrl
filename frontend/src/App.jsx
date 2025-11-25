@@ -39,6 +39,15 @@ export default function App() {
     queryKey: ["pools"],
     queryFn: () => apiGet("/api/storage/pools"),
   });
+
+  const callAction = async (fn) => {
+    try {
+      setQuickError("");
+      await fn();
+    } catch (e) {
+      setQuickError(e?.response?.data || e.message);
+    }
+  };
   const pageMeta = useMemo(
     () => ({
       dashboard: {
@@ -398,46 +407,53 @@ export default function App() {
               <div className="p-4 space-y-3 text-sm text-white">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <button
-                    onClick={async () => {
-                      setQuickError("");
-                      setQuickMessage("Backend wird neu gestartet...");
-                      try {
-                        await apiPost("/api/system/service/restart", { service: "gr3mctrl-backend.service" });
-                        setQuickMessage("Backend restart ausgelöst.");
-                      } catch (e) {
-                        setQuickError(e?.response?.data || e.message);
-                      }
-                    }}
+                    onClick={() =>
+                      callAction(async () => {
+                        setQuickMessage("Backend wird neu gestartet...");
+                        const res = await fetch("/api/system/service/restart", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ service: "gr3mctrl-backend.service" }),
+                        });
+                        if (!res.ok) {
+                          const msg = await res.text();
+                          throw new Error(msg || `HTTP ${res.status}`);
+                        }
+                        setQuickMessage("Backend restart ausgelöst (läuft ggf. gleich neu an).");
+                      })
+                    }
                     className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left"
                   >
                     Backend neu starten
                   </button>
                   <button
-                    onClick={async () => {
-                      setQuickError("");
-                      setQuickMessage("Gateway wird neu gestartet...");
-                      try {
-                        await apiPost("/api/system/service/restart", { service: "gr3mctrl-gateway.service" });
-                        setQuickMessage("Gateway restart ausgelöst.");
-                      } catch (e) {
-                        setQuickError(e?.response?.data || e.message);
-                      }
-                    }}
+                    onClick={() =>
+                      callAction(async () => {
+                        setQuickMessage("Gateway wird neu gestartet...");
+                        const res = await fetch("/api/system/service/restart", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ service: "gr3mctrl-gateway.service" }),
+                        });
+                        if (!res.ok) {
+                          const msg = await res.text();
+                          throw new Error(msg || `HTTP ${res.status}`);
+                        }
+                        setQuickMessage("Gateway restart ausgelöst (Proxy kann kurz weg sein).");
+                      })
+                    }
                     className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left"
                   >
                     Gateway neu starten
                   </button>
                   <button
-                    onClick={async () => {
-                      setQuickError("");
-                      setQuickMessage("Shares werden neu geladen...");
-                      try {
+                    onClick={() =>
+                      callAction(async () => {
+                        setQuickMessage("Shares werden neu geladen...");
                         await apiPost("/api/storage/shares/reload", {});
                         setQuickMessage("Shares neu eingelesen.");
-                      } catch (e) {
-                        setQuickError(e?.response?.data || e.message);
-                      }
-                    }}
+                      })
+                    }
                     className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left"
                   >
                     Shares neu einlesen
