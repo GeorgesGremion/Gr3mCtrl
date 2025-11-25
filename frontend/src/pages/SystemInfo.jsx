@@ -115,7 +115,7 @@ const Stat = ({ label, value, accent = "text-white" }) => (
 );
 
 const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
-  const isHtml = (txt) => typeof txt === "string" && txt.trim().toLowerCase().includes("<html");
+  const isHtml = (txt) => typeof txt === "string" && txt.toLowerCase().includes("<html");
   const available = update?.update_available === true;
   const currentVersion = info?.version || "unknown";
   const channel = info?.channel || "branch";
@@ -124,6 +124,7 @@ const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
   const rawNotes = update?.release_notes;
   const releaseNotes = typeof rawNotes === "string" && !isHtml(rawNotes) ? rawNotes : "";
   const releaseNotesError = isHtml(rawNotes) ? "Update-Server liefert HTML (Proxy/502?)" : "";
+  const sanitizedUpdateError = updateError && isHtml(updateError) ? "Update-Status liefert HTML (Proxy/502?)" : updateError;
   const published = update?.latest_published
     ? new Date(update.latest_published).toLocaleString()
     : null;
@@ -207,8 +208,8 @@ const UpdateCard = ({ info, update, loading, onUpdated, updateError }) => {
           </span>
         )}
         {running && <span className="text-sm text-slate-300">Update wird installiert...</span>}
-        {updateError && !running && (
-          <span className="text-sm text-rose-400">Update-Status-Fehler: {updateError}</span>
+        {sanitizedUpdateError && !running && (
+          <span className="text-sm text-rose-400">Update-Status-Fehler: {sanitizedUpdateError}</span>
         )}
         {runError && !waitingForRestart && (
           <span className="text-sm text-rose-400">
