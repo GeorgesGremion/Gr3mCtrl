@@ -17,8 +17,6 @@ import Shares from "./pages/Shares";
 import NasUsers from "./pages/NasUsers";
 import TerminalModal from "./components/TerminalModal";
 import FileManager from "./pages/FileManager";
-import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "./api";
 
 export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
