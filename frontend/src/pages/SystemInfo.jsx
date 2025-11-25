@@ -1,9 +1,8 @@
-ï»¿import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiPost } from "../api";
+import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiGet } from "../api";
 
 export default function SystemInfo() {
-  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["systemInfo"],
     queryFn: () => apiGet("/api/system/info"),
@@ -13,14 +12,6 @@ export default function SystemInfo() {
     queryKey: ["updateStatus"],
     queryFn: () => apiGet("/api/system/update"),
     refetchInterval: 60000,
-  });
-
-  const updater = useMutation({
-    mutationFn: () => apiPost("/api/system/update", {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["updateStatus"] });
-      qc.invalidateQueries({ queryKey: ["systemInfo"] });
-    },
   });
 
   if (isLoading)
@@ -117,7 +108,7 @@ const Stat = ({ label, value, accent = "text-white" }) => (
   </div>
 );
 
-const UpdateCard = ({ info, update, loading, updater }) => {
+const UpdateCard = ({ info, update, loading }) => {\n  const qc = useQueryClient();
   const available = update?.update_available;
   const currentVersion = info?.version || "unknown";
   const channel = info?.channel || "branch";
@@ -128,21 +119,44 @@ const UpdateCard = ({ info, update, loading, updater }) => {
     ? new Date(update.latest_published).toLocaleString()
     : null;
   const [justUpdated, setJustUpdated] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [logs, setLogs] = useState("");
+  const [runError, setRunError] = useState("");
+  const [running, setRunning] = useState(false);
+  const logRef = useRef(null);
 
   useEffect(() => {
-    if (updater.isPending) {
-      setJustUpdated(false);
-      return;
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
     }
-    if (updater.isSuccess) {
-      setJustUpdated(true);
-      const t = setTimeout(() => {
-        setJustUpdated(false);
-        updater.reset();
-      }, 4000);
-      return () => clearTimeout(t);
+  }, [logs, running]);
+
+  const runUpdate = async () => {
+    setLogs("");
+    setRunError("");
+    setRunning(true);
+    setShowModal(true);
+    try {
+      const res = await fetch("/api/system/update?stream=1", { method: "POST" });
+      if (!res.ok || !res.body) {
+        const msg = await res.text();
+        throw new Error(msg || "Update fehlgeschlagen");
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          setLogs((prev) => prev + decoder.decode(value));
+        }
+      }
+      setRunning(false);\n      setJustUpdated(true);\n      qc.invalidateQueries({ queryKey: ["updateStatus"] });\n      qc.invalidateQueries({ queryKey: ["systemInfo"] });
+    } catch (e) {
+      setRunError(e.message);
+      setRunning(false);
     }
-  }, [updater]);
+  };
 
   return (
     <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
@@ -152,29 +166,29 @@ const UpdateCard = ({ info, update, loading, updater }) => {
         <p>Branch: {info?.branch}</p>
         <p>Channel: {channel}</p>
         <p>Commit: {commitShort || "-"} {info?.build_date ? `(${info.build_date})` : ""}</p>
-        {published && <p>Release: {latestVersion} Ã‚Â· {published}</p>}
+        {published && <p>Release: {latestVersion} ? {published}</p>}
       </div>
       <div className="mt-4 flex items-center gap-3">
         {available ? (
           <button
-            onClick={() => updater.mutate()}
-            disabled={updater.isPending}
+            onClick={runUpdate}
+            disabled={running}
             className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50"
           >
-            {updater.isPending ? "Update wird installiert..." : "Update installieren"}
+            {running ? "Update läuft..." : "Update installieren"}
           </button>
         ) : (
           <span className="text-emerald-400 text-sm">
             {loading ? "Pruefe Updates..." : "System ist aktuell"}
           </span>
         )}
-        {updater.isPending && <span className="text-sm text-slate-300">Update wird installiert...</span>}
-        {updater.isError && (
+        {running && <span className="text-sm text-slate-300">Update wird installiert...</span>}
+        {runError && (
           <span className="text-sm text-rose-400">
-            {updater.error?.response?.data || updater.error?.message}
+            {runError}
           </span>
         )}
-        {justUpdated && !available && !updater.isPending && !updater.isError && (
+        {justUpdated && !available && !running && !runError && (
           <span className="text-sm text-emerald-400">Update abgeschlossen</span>
         )}
       </div>
@@ -183,7 +197,35 @@ const UpdateCard = ({ info, update, loading, updater }) => {
           {releaseNotes}
         </div>
       )}
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900/95 border border-white/10 rounded-2xl w-full max-w-4xl h-[70vh] shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Update Log</p>
+                <p className="text-xs text-slate-500">{running ? "läuft..." : "fertig"}</p>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
+              >
+                Schliessen
+              </button>
+            </div>
+            <div className="flex-1 bg-black p-3 overflow-auto font-mono text-xs text-slate-200" ref={logRef}>
+              {logs || (running ? "Starte Update..." : "Keine Logs")}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+
+
+
+
+
 
