@@ -276,7 +276,7 @@ func UpdateResources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.MemoryMB > 0 {
-		memFlags := libvirt.DOMAIN_MEM_CONFIG
+		memFlags := libvirt.DomainMemoryModFlags(libvirt.DOMAIN_MEM_CONFIG)
 		if applyLive {
 			memFlags |= libvirt.DOMAIN_MEM_LIVE
 		}
@@ -286,7 +286,7 @@ func UpdateResources(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if req.VCPUs > 0 {
-		vcpuFlags := libvirt.DOMAIN_VCPU_CONFIG
+		vcpuFlags := libvirt.DomainVcpuFlags(libvirt.DOMAIN_VCPU_CONFIG)
 		if applyLive {
 			vcpuFlags |= libvirt.DOMAIN_VCPU_LIVE
 		}
