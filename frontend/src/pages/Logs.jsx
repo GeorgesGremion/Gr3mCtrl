@@ -23,7 +23,8 @@ export default function Logs() {
         throw new Error(msg || `HTTP ${res.status}`);
       }
       const text = await res.text();
-      setLogs(text);
+      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0).reverse().join("\n");
+      setLogs(lines);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -69,6 +70,9 @@ export default function Logs() {
       <div className="bg-black/60 border border-white/10 rounded-xl p-3 text-xs font-mono text-slate-200 whitespace-pre-wrap min-h-[60vh]">
         {logs || (loading ? "Lade..." : "Keine Logs")}
       </div>
+      <p className="text-xs text-slate-400">
+        Zeigt journalctl-Ausgaben der Dienste (neuste oben). Aktionen, die das Backend loggt (z.B. VM Start/Stop), erscheinen hier.
+      </p>
     </div>
   );
 }
