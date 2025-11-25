@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+Ôªøimport { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet } from "../api";
 
 export default function SystemInfo() {
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["systemInfo"],
     queryFn: () => apiGet("/api/system/info"),
@@ -36,7 +37,10 @@ export default function SystemInfo() {
         info={data}
         update={updateInfo.data}
         loading={updateInfo.isLoading}
-        updater={updater}
+        onUpdated={() => {
+          qc.invalidateQueries({ queryKey: ["updateStatus"] });
+          qc.invalidateQueries({ queryKey: ["systemInfo"] });
+        }}
       />
 
       <InfoCard
@@ -108,7 +112,7 @@ const Stat = ({ label, value, accent = "text-white" }) => (
   </div>
 );
 
-const UpdateCard = ({ info, update, loading }) => {\n  const qc = useQueryClient();
+const UpdateCard = ({ info, update, loading, onUpdated }) => {
   const available = update?.update_available;
   const currentVersion = info?.version || "unknown";
   const channel = info?.channel || "branch";
@@ -151,7 +155,9 @@ const UpdateCard = ({ info, update, loading }) => {\n  const qc = useQueryClient
           setLogs((prev) => prev + decoder.decode(value));
         }
       }
-      setRunning(false);\n      setJustUpdated(true);\n      qc.invalidateQueries({ queryKey: ["updateStatus"] });\n      qc.invalidateQueries({ queryKey: ["systemInfo"] });
+      setRunning(false);
+      setJustUpdated(true);
+      onUpdated?.();
     } catch (e) {
       setRunError(e.message);
       setRunning(false);
@@ -166,7 +172,7 @@ const UpdateCard = ({ info, update, loading }) => {\n  const qc = useQueryClient
         <p>Branch: {info?.branch}</p>
         <p>Channel: {channel}</p>
         <p>Commit: {commitShort || "-"} {info?.build_date ? `(${info.build_date})` : ""}</p>
-        {published && <p>Release: {latestVersion} ? {published}</p>}
+        {published && <p>Release: {latestVersion} - {published}</p>}
       </div>
       <div className="mt-4 flex items-center gap-3">
         {available ? (
@@ -175,7 +181,7 @@ const UpdateCard = ({ info, update, loading }) => {\n  const qc = useQueryClient
             disabled={running}
             className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50"
           >
-            {running ? "Update l‰uft..." : "Update installieren"}
+            {running ? "Update l√§uft..." : "Update installieren"}
           </button>
         ) : (
           <span className="text-emerald-400 text-sm">
@@ -204,7 +210,7 @@ const UpdateCard = ({ info, update, loading }) => {\n  const qc = useQueryClient
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Update Log</p>
-                <p className="text-xs text-slate-500">{running ? "l‰uft..." : "fertig"}</p>
+                <p className="text-xs text-slate-500">{running ? "l√§uft..." : "fertig"}</p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -222,10 +228,3 @@ const UpdateCard = ({ info, update, loading }) => {\n  const qc = useQueryClient
     </div>
   );
 };
-
-
-
-
-
-
-
