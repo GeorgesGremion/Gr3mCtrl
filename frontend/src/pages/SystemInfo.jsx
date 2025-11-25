@@ -148,11 +148,17 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let firstChunk = true;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         if (value) {
-          setLogs((prev) => prev + decoder.decode(value));
+          const chunk = decoder.decode(value);
+          if (firstChunk && chunk.trim().toLowerCase().startsWith("<html")) {
+            throw new Error("Update-Stream liefert HTML (Proxy/Backend nicht erreichbar)");
+          }
+          firstChunk = false;
+          setLogs((prev) => prev + chunk);
         }
       }
       setRunning(false);
@@ -219,8 +225,15 @@ const UpdateCard = ({ info, update, loading, onUpdated }) => {
                 Schliessen
               </button>
             </div>
-            <div className="flex-1 bg-black p-3 overflow-auto font-mono text-xs text-slate-200" ref={logRef}>
-              {logs || (running ? "Starte Update..." : "Keine Logs")}
+            <div className="flex-1 bg-black p-3 overflow-auto font-mono text-xs text-slate-200 space-y-3" ref={logRef}>
+              {running && (
+                <div className="flex items-center gap-2 text-slate-300">
+                  <span className="h-3 w-3 rounded-full border-2 border-slate-500 border-t-transparent animate-spin"></span>
+                  <span>Update läuft... Bitte warten, Backend kann kurz nicht erreichbar sein.</span>
+                </div>
+              )}
+              {runError && <div className="text-rose-400">Fehler: {runError}</div>}
+              <pre className="whitespace-pre-wrap">{logs || (!running && !runError ? "Keine Logs" : "")}</pre>
             </div>
           </div>
         </div>
