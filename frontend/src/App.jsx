@@ -21,6 +21,7 @@ import FileManager from "./pages/FileManager";
 export default function App() {
   const [page, setPage] = useState("dashboard"); // Start auf Dashboard
   const [showShell, setShowShell] = useState(false);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
   useEffect(() => {
     document.title = "Gr3mCtrl";
   }, []);
@@ -183,7 +184,10 @@ export default function App() {
             <button className="px-4 py-2 rounded-full border border-white/20 text-sm text-white/80 hover:border-white transition">
               Quick Action
             </button>
-            <button className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-sm font-semibold shadow-lg shadow-purple-500/30">
+            <button
+              onClick={() => setShowCreateMenu(true)}
+              className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-sm font-semibold shadow-lg shadow-purple-500/30"
+            >
               Neue Resource
             </button>
             {updateInfo.data?.update_available && (
@@ -325,6 +329,44 @@ export default function App() {
           </div>
         </main>
         <TerminalModal open={showShell} onClose={() => setShowShell(false)} />
+
+        {showCreateMenu && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900/95 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Neue Ressource</p>
+                <button
+                  onClick={() => setShowCreateMenu(false)}
+                  className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
+                >
+                  Schliessen
+                </button>
+              </div>
+              <div className="p-4 space-y-2">
+                {[
+                  { label: "Neue VM", page: "vms" },
+                  { label: "Neuer Compose Stack", page: "compose" },
+                  { label: "Neues Share", page: "shares" },
+                  { label: "Neuer NAS Benutzer", page: "nas-users" },
+                  { label: "Neues Volume", page: "volumes" },
+                ].map((item) => (
+                  <button
+                    key={item.page}
+                    onClick={() => {
+                      setPage(item.page);
+                      window.location.hash = `#/${item.page}`;
+                      window.dispatchEvent(new HashChangeEvent("hashchange"));
+                      setShowCreateMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
